@@ -1,19 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:custom="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.hzn.easytableview.MainActivity"
+    android:background="#f1f1f1"
     >
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
+    <com.hzn.easytableview.EasyTableView
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_margin="10dp"
+        android:background="#44ff00"
+        custom:etvBgColor="#ffffff"
+        custom:etvRows="4"
+        custom:etvLines="8"
+        custom:etvMode="fixWidthHeight"
+        custom:etvHeaderHColor="#ffb5b5"
+        custom:etvHeaderVColor="#ffb5b5"
+        custom:etvHeaderHVColor="#ffffff"
+        custom:etvOutStrokeCorner="10dp"
+        custom:etvOutStrokeSize="1dp"
+        custom:etvOutStrokeColor="#ff0000"
+        custom:etvStrokeSize="0.5dp"
+        custom:etvStrokeColor="#000000"
         />
 </RelativeLayout>
