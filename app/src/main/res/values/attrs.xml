@@ -13,8 +13,6 @@
         <attr name="etvOutStrokeColor" format="color"/>
         <attr name="etvOutStrokeSize" format="dimension"/>
         <attr name="etvOutStrokeCorner" format="dimension"/>
-        <attr name="etvHeaderHTextColor" format="color"/>
-        <attr name="etvHeaderVTextColor" format="color"/>
         <attr name="etvMode" format="enum">
             <enum name="normal" value="0"/>
             <enum name="fixWidth" value="1"/>

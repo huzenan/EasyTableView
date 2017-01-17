@@ -8,21 +8,21 @@
     >
 
     <com.hzn.easytableview.EasyTableView
+        android:id="@+id/table"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="250dp"
         android:layout_margin="10dp"
-        android:background="#44ff00"
         custom:etvBgColor="#ffffff"
         custom:etvRows="4"
         custom:etvLines="8"
         custom:etvMode="fixWidthHeight"
-        custom:etvHeaderHColor="#ffb5b5"
-        custom:etvHeaderVColor="#ffb5b5"
-        custom:etvHeaderHVColor="#ffffff"
+        custom:etvHeaderHColor="#f9f9f9"
+        custom:etvHeaderVColor="#ffffff"
+        custom:etvHeaderHVColor="#f9f9f9"
         custom:etvOutStrokeCorner="10dp"
         custom:etvOutStrokeSize="1dp"
-        custom:etvOutStrokeColor="#ff0000"
+        custom:etvOutStrokeColor="#00d3c2"
         custom:etvStrokeSize="0.5dp"
-        custom:etvStrokeColor="#000000"
+        custom:etvStrokeColor="#acacac"
         />
 </RelativeLayout>
