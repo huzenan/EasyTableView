@@ -12,6 +12,7 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 
 import java.util.ArrayList;
 
@@ -27,11 +28,11 @@ public class EasyTableView extends View {
     private int lines;
     // 背景颜色，默认为Color.WHITE
     private int bgColor;
-    // 双向表头，默认为Color.LTGRAY
+    // 双向表头颜色，至少2x2的表格才绘制，默认为Color.LTGRAY
     private int headerHVColor;
-    // 横向表头颜色，默认为Color.LTGRAY
+    // 横向表头颜色，便于统一设置；至少2行才绘制，默认为Color.LTGRAY
     private int headerHColor;
-    // 竖向表头颜色，默认为Color.LTGRAY
+    // 竖向表头颜色，便于统一设置；至少2列才绘制，默认为Color.LTGRAY
     private int headerVColor;
     // 线段颜色，默认为Color.GRAY
     private int strokeColor;
@@ -55,18 +56,16 @@ public class EasyTableView extends View {
     // 固定宽高模式，表格的宽、高分别由width、height属性决定，每一行、每一列都平均分
     public static final int MODE_FIX_WIDTH_HEIGHT = 3;
 
-    // 表格宽
-    private int width;
-    // 表格高
-    private int height;
-
     private Paint paint;
     private Paint strokePaint;
     private TextPaint textPaint;
     private RectF bgRectF;
     private Path tPath;
     private RectF tRectF;
+    private RectF tCornerRectF;
 
+    // 单元格数据集合
+    private ArrayList<CellInfo> cellInfoList;
     // 合并单元格的数据集合
     private ArrayList<MergeInfo> mergeInfoList;
     // 单元格宽度集合
@@ -74,9 +73,12 @@ public class EasyTableView extends View {
     // 单元格高度集合
     private float[] heightArr;
     // 单元格数据集合
-    private GridInfo[][] gridArr;
+    private CellInfo[][] cellArr;
 
     private Object curTouchCell;
+    private float downX;
+    private float downY;
+    private int touchSlop;
 
 
     public EasyTableView(Context context) {
@@ -119,40 +121,45 @@ public class EasyTableView extends View {
         bgRectF = new RectF();
         tPath = new Path();
         tRectF = new RectF();
+        tCornerRectF = new RectF();
 
+        cellInfoList = new ArrayList<>();
         mergeInfoList = new ArrayList<>();
         widthArr = new float[lines];
         heightArr = new float[rows];
 
         // 初始化单元格
         if (rows != 0 && lines != 0) {
-            gridArr = new GridInfo[rows][lines];
-            for (int i = 0; i < rows; i++)
-                for (int j = 0; j < lines; j++)
-                    gridArr[i][j] = new GridInfo();
+            cellArr = new CellInfo[rows][lines];
+            for (int r = 0; r < rows; r++)
+                for (int l = 0; l < lines; l++)
+                    cellArr[r][l] = new CellInfo();
         }
+
+        ViewConfiguration viewConfiguration = ViewConfiguration.get(getContext());
+        touchSlop = viewConfiguration.getScaledTouchSlop();
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int measureMode = MeasureSpec.getMode(widthMeasureSpec);
-        width = MeasureSpec.getSize(widthMeasureSpec);
+        int width = MeasureSpec.getSize(widthMeasureSpec);
         if (measureMode != MeasureSpec.EXACTLY) { // wrap_content
             // 每一列占用的宽度和
             width = 0;
-            for (int i = 0; i < lines; i++)
-                width = (int) (width + widthArr[i] + strokeSize);
-            width = width - strokeSize + outStrokeSize + getPaddingLeft() + getPaddingRight();
+            for (int l = 0; l < lines; l++)
+                width = (int) (width + widthArr[l]);
+            width = width + outStrokeSize + getPaddingLeft() + getPaddingRight();
         }
 
         measureMode = MeasureSpec.getMode(heightMeasureSpec);
-        height = MeasureSpec.getSize(heightMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
         if (measureMode != MeasureSpec.EXACTLY) { // wrap_content
             // 每一行占用的高度和
             height = 0;
-            for (int i = 0; i < rows; i++)
-                height = (int) (height + heightArr[i] + strokeSize);
-            height = height - strokeSize + outStrokeSize + getPaddingTop() + getPaddingBottom();
+            for (int r = 0; r < rows; r++)
+                height = (int) (height + heightArr[r]);
+            height = height + outStrokeSize + getPaddingTop() + getPaddingBottom();
         }
 
         bgRectF.left = 0.0f + getPaddingLeft() + outStrokeSize / 2.0f;
@@ -189,47 +196,47 @@ public class EasyTableView extends View {
     private void initData() {
         // 固定模式中（此时宽高不能为wrap_content），确定每一行、每一列的宽高
         if (mode == MODE_FIX_WIDTH || mode == MODE_FIX_WIDTH_HEIGHT) {
-            float fixWidth = 1.0f * (width - outStrokeSize) / lines;
-            for (int i = 0; i < lines; i++)
-                widthArr[i] = fixWidth;
+            float fixWidth = 1.0f * (bgRectF.right - bgRectF.left) / lines;
+            for (int l = 0; l < lines; l++)
+                widthArr[l] = fixWidth;
         }
         if (mode == MODE_FIX_HEIGHT || mode == MODE_FIX_WIDTH_HEIGHT) {
-            float fixHeight = 1.0f * (height - outStrokeSize) / rows;
-            for (int i = 0; i < rows; i++)
-                heightArr[i] = fixHeight;
+            float fixHeight = 1.0f * (bgRectF.bottom - bgRectF.top) / rows;
+            for (int r = 0; r < rows; r++)
+                heightArr[r] = fixHeight;
         }
 
         // 初始化每个单元格的起始x、y坐标，并统一设置row、line，统一设置width、height为最大值（需要以最大值为标准）
-        float startY = 0.0f + outStrokeSize / 2.0f;
-        for (int i = 0; i < rows; i++) {
-            float startX = 0.0f + outStrokeSize / 2.0f;
-            for (int j = 0; j < lines; j++) {
-                gridArr[i][j].row = i;
-                gridArr[i][j].height = j;
-                gridArr[i][j].startX = startX;
-                gridArr[i][j].startY = startY;
-                gridArr[i][j].width = widthArr[j];
-                gridArr[i][j].height = heightArr[i];
-                startX += widthArr[j];
+        float startY = bgRectF.top;
+        for (int r = 0; r < rows; r++) {
+            float startX = bgRectF.left;
+            for (int l = 0; l < lines; l++) {
+                cellArr[r][l].row = r;
+                cellArr[r][l].line = l;
+                cellArr[r][l].startX = startX;
+                cellArr[r][l].startY = startY;
+                cellArr[r][l].width = widthArr[l];
+                cellArr[r][l].height = heightArr[r];
+                startX += widthArr[l];
             }
-            startY += heightArr[i];
+            startY += heightArr[r];
         }
 
         // 初始化合并后的单元格的startX、startY、width和height
         int mergeInfoSize = mergeInfoList.size();
         for (int i = 0; i < mergeInfoSize; i++) {
             MergeInfo mergeInfo = mergeInfoList.get(i);
-            mergeInfo.startX = gridArr[mergeInfo.startRow][mergeInfo.startLine].startX;
-            mergeInfo.startY = gridArr[mergeInfo.startRow][mergeInfo.startLine].startY;
+            mergeInfo.startX = cellArr[mergeInfo.startRow][mergeInfo.startLine].startX;
+            mergeInfo.startY = cellArr[mergeInfo.startRow][mergeInfo.startLine].startY;
             float width = 0.0f;
             float height = 0.0f;
             for (int r = mergeInfo.startRow; r <= mergeInfo.endRow; r++) {
                 width = 0.0f;
                 for (int l = mergeInfo.startLine; l <= mergeInfo.endLine; l++) {
-                    gridArr[r][l].mergeInfo = mergeInfo;
-                    width += gridArr[r][l].width; // 为了方便，不另外循环计算了
+                    cellArr[r][l].mergeInfo = mergeInfo;
+                    width += cellArr[r][l].width; // 为了方便，不另外循环计算了
                 }
-                height += gridArr[r][0].height;
+                height += cellArr[r][0].height;
             }
             mergeInfo.width = width;
             mergeInfo.height = height;
@@ -239,176 +246,195 @@ public class EasyTableView extends View {
     // 绘制背景
     private void drawBg(Canvas canvas) {
         paint.setColor(bgColor);
-        canvas.drawRoundRect(bgRectF, outStrokeCorner / 2.0f, outStrokeCorner / 2.0f, paint);
+        canvas.drawRoundRect(bgRectF, outStrokeCorner, outStrokeCorner, paint);
     }
 
     // 绘制双向表头
     private void drawHeaderVH(Canvas canvas) {
-        paint.setColor(headerHVColor);
-        tRectF.left = bgRectF.left;
-        tRectF.top = bgRectF.top;
-        tRectF.right = bgRectF.left + outStrokeCorner;
-        tRectF.bottom = bgRectF.top + outStrokeCorner;
-        tPath.moveTo(bgRectF.left + widthArr[0], bgRectF.top);
-        tPath.lineTo(bgRectF.left + outStrokeCorner, bgRectF.top);
-        tPath.addArc(tRectF, -90.0f, -90.0f);
-        tPath.lineTo(bgRectF.left, bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top);
-        tPath.close();
-        canvas.drawPath(tPath, paint);
+        // 至少2x2的表格才绘制双向表头
+        if (cellArr.length > 1 && cellArr[0].length > 1) {
+            int twiceCorner = outStrokeCorner * 2;
+            paint.setColor(headerHVColor);
+            tRectF.left = bgRectF.left;
+            tRectF.top = bgRectF.top;
+            tRectF.right = bgRectF.left + twiceCorner;
+            tRectF.bottom = bgRectF.top + twiceCorner;
+            tPath.moveTo(bgRectF.left + widthArr[0], bgRectF.top);
+            tPath.lineTo(bgRectF.left + outStrokeCorner, bgRectF.top);
+            tPath.arcTo(tRectF, -90.0f, -90.0f);
+            tPath.lineTo(bgRectF.left, bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top);
+            tPath.close();
+            canvas.drawPath(tPath, paint);
+        }
     }
 
+    // 绘制横向表头
     private void drawHeaderH(Canvas canvas) {
-        // 绘制横向表头
-        paint.setColor(headerHColor);
-        tRectF.left = bgRectF.right - outStrokeCorner;
-        tRectF.top = bgRectF.top;
-        tRectF.right = bgRectF.right;
-        tRectF.bottom = bgRectF.top + outStrokeCorner;
-        tPath.reset();
-        tPath.moveTo(bgRectF.left + widthArr[0], bgRectF.top);
-        tPath.lineTo(bgRectF.right - outStrokeCorner, bgRectF.top);
-        tPath.addArc(tRectF, -90.0f, 90.0f);
-        tPath.lineTo(bgRectF.right, bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top);
-        tPath.close();
-        canvas.drawPath(tPath, paint);
-
-        // 绘制横向表头的字符
-        for (int l = 1; l < gridArr[0].length; l++) {
-            if (null != gridArr[0][l].texts && gridArr[0][l].texts.length > 0) {
-                int textRows = gridArr[0][l].texts.length;
-                float h = gridArr[0][l].height;
-                float w = gridArr[0][l].width;
-                float[] textHeights = new float[textRows];
-                float originX;
-                float baseLine;
-                Paint.FontMetrics fm;
-                float textsTotalHeight = 0.0f;
-                for (int t = 0; t < textRows; t++) {
-                    textPaint.setTextSize(gridArr[0][l].textSizes[t]);
-                    fm = textPaint.getFontMetrics();
-                    textHeights[t] = fm.bottom - fm.top;
-                    textsTotalHeight += textHeights[t];
-                }
-                float top = (h - textsTotalHeight) / 2.0f;
-                for (int t = 0; t < textRows; t++) {
-                    String text = gridArr[0][l].texts[t];
-                    if (null != text && text.length() > 0) {
-                        textPaint.setTextSize(gridArr[0][l].textSizes[t]);
-                        textPaint.setColor(gridArr[0][l].textColors[t]);
-                        fm = textPaint.getFontMetrics();
-                        originX = gridArr[0][l].startX + w / 2.0f - textPaint.measureText(text) / 2.0f;
-                        baseLine = gridArr[0][l].startY + top + textHeights[t] / 2.0f - (fm.ascent + fm.descent) / 2.0f;
-                        canvas.drawText(text, originX, baseLine, textPaint);
-                    }
-                    top += textHeights[t];
-                }
-            }
+        // 至少2行才绘制
+        if (cellArr.length > 1) {
+            int twiceCorner = outStrokeCorner * 2;
+            paint.setColor(headerHColor);
+            tRectF.left = bgRectF.right - twiceCorner;
+            tRectF.top = bgRectF.top;
+            tRectF.right = bgRectF.right;
+            tRectF.bottom = bgRectF.top + twiceCorner;
+            tPath.reset();
+            tPath.moveTo(bgRectF.left + widthArr[0], bgRectF.top);
+            tPath.lineTo(bgRectF.right - outStrokeCorner, bgRectF.top);
+            tPath.arcTo(tRectF, -90.0f, 90.0f);
+            tPath.lineTo(bgRectF.right, bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top);
+            tPath.close();
+            canvas.drawPath(tPath, paint);
         }
     }
 
+    // 绘制竖向表头
     private void drawHeaderV(Canvas canvas) {
-        // 绘制竖向表头
-        paint.setColor(headerVColor);
-        tRectF.left = bgRectF.left;
-        tRectF.top = bgRectF.bottom - outStrokeCorner;
-        tRectF.right = bgRectF.left + outStrokeCorner;
-        tRectF.bottom = bgRectF.bottom;
-        tPath.reset();
-        tPath.moveTo(bgRectF.left, bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left, bgRectF.bottom - outStrokeCorner);
-        tPath.addArc(tRectF, 180.0f, -90.0f);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.bottom);
-        tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
-        tPath.lineTo(bgRectF.left, bgRectF.top + heightArr[0]);
-        tPath.close();
-        canvas.drawPath(tPath, paint);
-
-        // 绘制竖向表头的字符
-        for (int r = 1; r < gridArr.length; r++) {
-            if (null != gridArr[r][0].texts && gridArr[r][0].texts.length > 0) {
-                int textRows = gridArr[r][0].texts.length;
-                float h = gridArr[r][0].height;
-                float w = gridArr[r][0].width;
-                float[] textHeights = new float[textRows];
-                float originX;
-                float baseLine;
-                Paint.FontMetrics fm;
-                float textsTotalHeight = 0.0f;
-                for (int t = 0; t < textRows; t++) {
-                    textPaint.setTextSize(gridArr[r][0].textSizes[t]);
-                    fm = textPaint.getFontMetrics();
-                    textHeights[t] = fm.bottom - fm.top;
-                    textsTotalHeight += textHeights[t];
-                }
-                float top = (h - textsTotalHeight) / 2.0f;
-                for (int t = 0; t < textRows; t++) {
-                    String text = gridArr[r][0].texts[t];
-                    if (null != text && text.length() > 0) {
-                        textPaint.setTextSize(gridArr[r][0].textSizes[t]);
-                        textPaint.setColor(gridArr[r][0].textColors[t]);
-                        fm = textPaint.getFontMetrics();
-                        originX = gridArr[r][0].startX + w / 2.0f - textPaint.measureText(text) / 2.0f;
-                        baseLine = gridArr[r][0].startY + top + textHeights[t] / 2.0f - (fm.ascent + fm.descent) / 2.0f;
-                        canvas.drawText(text, originX, baseLine, textPaint);
-                    }
-                    top += textHeights[t];
-                }
-            }
+        // 至少2列才绘制
+        if (cellArr[0].length > 1) {
+            int twiceCorner = outStrokeCorner * 2;
+            paint.setColor(headerVColor);
+            tRectF.left = bgRectF.left;
+            tRectF.top = bgRectF.bottom - twiceCorner;
+            tRectF.right = bgRectF.left + twiceCorner;
+            tRectF.bottom = bgRectF.bottom;
+            tPath.reset();
+            tPath.moveTo(bgRectF.left, bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left, bgRectF.bottom - outStrokeCorner);
+            tPath.arcTo(tRectF, 180.0f, -90.0f);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.bottom);
+            tPath.lineTo(bgRectF.left + widthArr[0], bgRectF.top + heightArr[0]);
+            tPath.lineTo(bgRectF.left, bgRectF.top + heightArr[0]);
+            tPath.close();
+            canvas.drawPath(tPath, paint);
         }
     }
 
-    // 绘制单元格内容 TODO 右下角的圆角
+    // 绘制单元格内容，包括表头
     private void drawCellsInfo(Canvas canvas) {
-        float halfStrokeWidth = strokeSize / 2.0f;
-
-        for (int i = 1; i < rows; i++) {
-            for (int j = 1; j < lines; j++) {
-                if (gridArr[i][j].type != GridInfo.TYPE_NONE) {
+        for (int r = 0; r < rows; r++) {
+            for (int l = 0; l < lines; l++) {
+                if (cellArr[r][l].type != CellInfo.TYPE_NONE) {
                     // 绘制该单元格背景
-                    if (gridArr[i][j].bgColor != 0) {
-                        this.paint.setColor(gridArr[i][j].bgColor);
-                        canvas.drawRect(
-                                gridArr[i][j].startX + halfStrokeWidth,
-                                gridArr[i][j].startY + halfStrokeWidth,
-                                gridArr[i][j].startX + gridArr[i][j].width - halfStrokeWidth,
-                                gridArr[i][j].startY + gridArr[i][j].height - halfStrokeWidth,
-                                paint);
+                    if (cellArr[r][l].bgColor != 0 && cellArr[r][l].width > 0 && cellArr[r][l].height > 0) {
+                        tRectF.left = cellArr[r][l].startX;
+                        tRectF.top = cellArr[r][l].startY;
+                        tRectF.right = cellArr[r][l].startX + cellArr[r][l].width;
+                        tRectF.bottom = cellArr[r][l].startY + cellArr[r][l].height;
+                        this.paint.setColor(cellArr[r][l].bgColor);
+                        tPath.reset();
+                        if (rows - 1 == 0 && lines - 1 == 0) {
+                            // 只有一格
+                            tPath.moveTo(tRectF.left - outStrokeCorner, tRectF.top);
+                            addLeftTopCornerPath();
+                            tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+                            addLeftBottomCornerPath();
+                            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+                            addRightBottomCornerPath();
+                            tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+                            addRightTopCornerPath();
+                            tPath.close();
+                            canvas.drawPath(tPath, paint);
+                        } else if (rows - 1 == 0 && lines > 1) {
+                            // 只有一行
+                            if (l == 0) {
+                                // 最左侧
+                                tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
+                                addLeftTopCornerPath();
+                                tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+                                addLeftBottomCornerPath();
+                                tPath.lineTo(tRectF.right, tRectF.bottom);
+                                tPath.lineTo(tRectF.right, tRectF.top);
+                                tPath.close();
+                                canvas.drawPath(tPath, paint);
+                            } else if (l == lines - 1) {
+                                // 最右侧
+                                tPath.moveTo(tRectF.left, tRectF.top);
+                                tPath.lineTo(tRectF.left, tRectF.bottom);
+                                tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+                                addRightBottomCornerPath();
+                                tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+                                addRightTopCornerPath();
+                                tPath.close();
+                                canvas.drawPath(tPath, paint);
+                            } else {
+                                // 中间
+                                canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
+                            }
+                        } else if (rows > 1 && lines - 1 == 0) {
+                            // 只有一列
+                            if (r == 0) {
+                                // 最上侧
+                                tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
+                                addLeftTopCornerPath();
+                                tPath.lineTo(tRectF.left, tRectF.bottom);
+                                tPath.lineTo(tRectF.right, tRectF.bottom);
+                                tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+                                addRightTopCornerPath();
+                                tPath.close();
+                                canvas.drawPath(tPath, paint);
+                            } else if (r == rows - 1) {
+                                // 最下侧
+                                tPath.moveTo(tRectF.left, tRectF.top);
+                                tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+                                addLeftBottomCornerPath();
+                                tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+                                addRightBottomCornerPath();
+                                tPath.lineTo(tRectF.right, tRectF.top);
+                                tPath.close();
+                                canvas.drawPath(tPath, paint);
+                            } else {
+                                // 中间
+                                canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
+                            }
+                        } else if (r == 0 && l == 0) {
+                            // 左上角
+                            tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
+                            addLeftTopCornerPath();
+                            tPath.lineTo(tRectF.left, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.top);
+                            tPath.close();
+                            canvas.drawPath(tPath, paint);
+                        } else if (r == 0 && l == lines - 1) {
+                            // 右上角
+                            tPath.moveTo(tRectF.left, tRectF.top);
+                            tPath.lineTo(tRectF.left, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+                            addRightTopCornerPath();
+                            tPath.close();
+                            canvas.drawPath(tPath, paint);
+                        } else if (r == rows - 1 && l == 0) {
+                            // 左下角
+                            tPath.moveTo(tRectF.left, tRectF.top);
+                            tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+                            addLeftBottomCornerPath();
+                            tPath.lineTo(tRectF.right, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.top);
+                            tPath.close();
+                            canvas.drawPath(tPath, paint);
+                        } else if (r == rows - 1 && l == lines - 1) {
+                            // 右下角
+                            tPath.moveTo(tRectF.left, tRectF.top);
+                            tPath.lineTo(tRectF.left, tRectF.bottom);
+                            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+                            addRightBottomCornerPath();
+                            tPath.lineTo(tRectF.right, tRectF.top);
+                            tPath.close();
+                            canvas.drawPath(tPath, paint);
+                        } else {
+                            // 中间
+                            canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
+                        }
                     }
 
                     // 绘制单元格内的字符
-                    if (null != gridArr[i][j].texts && gridArr[i][j].texts.length > 0) {
-                        int textRows = gridArr[i][j].texts.length;
-                        float h = gridArr[i][j].height;
-                        float w = gridArr[i][j].width;
-                        float[] textHeights = new float[textRows];
-                        float originX;
-                        float baseLine;
-                        Paint.FontMetrics fm;
-                        float textsTotalHeight = 0.0f;
-                        for (int t = 0; t < textRows; t++) {
-                            textPaint.setTextSize(gridArr[i][j].textSizes[t]);
-                            fm = textPaint.getFontMetrics();
-                            textHeights[t] = fm.bottom - fm.top;
-                            textsTotalHeight += textHeights[t];
-                        }
-                        float top = (h - textsTotalHeight) / 2.0f;
-                        for (int t = 0; t < textRows; t++) {
-                            String text = gridArr[i][j].texts[t];
-                            if (null != text && text.length() > 0) {
-                                textPaint.setTextSize(gridArr[i][j].textSizes[t]);
-                                textPaint.setColor(gridArr[i][j].textColors[t]);
-                                fm = textPaint.getFontMetrics();
-                                originX = gridArr[i][j].startX + w / 2.0f - textPaint.measureText(text) / 2.0f;
-                                baseLine = gridArr[i][j].startY + top + textHeights[t] / 2.0f - (fm.ascent + fm.descent) / 2.0f;
-                                canvas.drawText(text, originX, baseLine, textPaint);
-                            }
-                            top += textHeights[t];
-                        }
-                    }
+                    drawTexts(canvas, cellArr[r][l]);
                 }
             }
         }
@@ -416,12 +442,16 @@ public class EasyTableView extends View {
 
     // 绘制线段
     private void drawStrokes(Canvas canvas) {
-        strokePaint.setColor(strokeColor);
-        strokePaint.setStrokeWidth(strokeSize);
-        for (int i = 1; i < rows; i++)
-            canvas.drawLine(gridArr[i][0].startX, gridArr[i][0].startY, bgRectF.right, gridArr[i][0].startY, strokePaint);
-        for (int i = 1; i < lines; i++)
-            canvas.drawLine(gridArr[0][i].startX, gridArr[0][i].startY, gridArr[0][i].startX, bgRectF.bottom, strokePaint);
+        if (strokeSize > 0) {
+            strokePaint.setColor(strokeColor);
+            strokePaint.setStrokeWidth(strokeSize);
+            for (int r = 1; r < rows; r++)
+                if (cellArr[r - 1][0].height > 0)
+                    canvas.drawLine(cellArr[r][0].startX, cellArr[r][0].startY, bgRectF.right, cellArr[r][0].startY, strokePaint);
+            for (int l = 1; l < lines; l++)
+                if (cellArr[0][l - 1].width > 0)
+                    canvas.drawLine(cellArr[0][l].startX, cellArr[0][l].startY, cellArr[0][l].startX, bgRectF.bottom, strokePaint);
+        }
     }
 
     // 绘制合并的单元格
@@ -471,45 +501,92 @@ public class EasyTableView extends View {
 
     // 绘制边框
     private void drawOutStroke(Canvas canvas) {
-        strokePaint.setColor(outStrokeColor);
-        strokePaint.setStrokeWidth(outStrokeSize);
-        tPath.reset();
+        if (outStrokeSize > 0) {
+            strokePaint.setColor(outStrokeColor);
+            strokePaint.setStrokeWidth(outStrokeSize);
 
-        tPath.moveTo(bgRectF.left + outStrokeCorner / 2.0f, bgRectF.top);
+            tPath.reset();
+            tPath.moveTo(bgRectF.left + outStrokeCorner, bgRectF.top);
+            addLeftTopCornerPath();
+            tPath.lineTo(bgRectF.left, bgRectF.bottom - outStrokeCorner);
+            addLeftBottomCornerPath();
+            tPath.lineTo(bgRectF.right - outStrokeCorner, bgRectF.bottom);
+            addRightBottomCornerPath();
+            tPath.lineTo(bgRectF.right, bgRectF.top + outStrokeCorner);
+            addRightTopCornerPath();
+            tPath.lineTo(bgRectF.left + outStrokeCorner, bgRectF.top);
 
-        tRectF.left = bgRectF.left;
-        tRectF.top = bgRectF.top;
-        tRectF.right = bgRectF.left + outStrokeCorner;
-        tRectF.bottom = bgRectF.top + outStrokeCorner;
-        tPath.addArc(tRectF, -90.0f, -90.0f);
+            canvas.drawPath(tPath, strokePaint);
+        }
+    }
 
-        tPath.lineTo(bgRectF.left, bgRectF.bottom - outStrokeCorner / 2.0f);
+    // 绘制单个单元格中的字符
+    private final void drawTexts(Canvas canvas, CellInfo cellInfo) {
+        if (null != cellInfo.texts && cellInfo.texts.length > 0) {
+            int textRows = cellInfo.texts.length;
+            float h = cellInfo.height;
+            float w = cellInfo.width;
+            float[] textHeights = new float[textRows];
+            float originX;
+            float baseLine;
+            Paint.FontMetrics fm;
+            float textsTotalHeight = 0.0f;
+            for (int t = 0; t < textRows; t++) {
+                textPaint.setTextSize(cellInfo.textSizes[t]);
+                fm = textPaint.getFontMetrics();
+                textHeights[t] = fm.bottom - fm.top;
+                textsTotalHeight += textHeights[t];
+            }
+            float top = (h - textsTotalHeight) / 2.0f;
+            for (int t = 0; t < textRows; t++) {
+                String text = cellInfo.texts[t];
+                if (null != text && text.length() > 0) {
+                    textPaint.setTextSize(cellInfo.textSizes[t]);
+                    textPaint.setColor(cellInfo.textColors[t]);
+                    fm = textPaint.getFontMetrics();
+                    originX = cellInfo.startX + w / 2.0f - textPaint.measureText(text) / 2.0f;
+                    baseLine = cellInfo.startY + top + textHeights[t] / 2.0f - (fm.ascent + fm.descent) / 2.0f;
+                    canvas.drawText(text, originX, baseLine, textPaint);
+                }
+                top += textHeights[t];
+            }
+        }
+    }
 
-        tRectF.left = bgRectF.left;
-        tRectF.top = bgRectF.bottom - outStrokeCorner;
-        tRectF.right = bgRectF.left + outStrokeCorner;
-        tRectF.bottom = bgRectF.bottom;
-        tPath.addArc(tRectF, 180.0f, -90.0f);
+    // 在tPath中添加一段左上角的圆角
+    private void addLeftTopCornerPath() {
+        tCornerRectF.left = bgRectF.left;
+        tCornerRectF.top = bgRectF.top;
+        tCornerRectF.right = bgRectF.left + outStrokeCorner * 2;
+        tCornerRectF.bottom = bgRectF.top + outStrokeCorner * 2;
+        tPath.arcTo(tCornerRectF, -90.0f, -90.0f);
+    }
 
-        tPath.lineTo(bgRectF.right - outStrokeCorner / 2.0f, bgRectF.bottom);
+    // 在tPath中添加一段左下角的圆角
+    private void addLeftBottomCornerPath() {
+        tCornerRectF.left = bgRectF.left;
+        tCornerRectF.top = bgRectF.bottom - outStrokeCorner * 2;
+        tCornerRectF.right = bgRectF.left + outStrokeCorner * 2;
+        tCornerRectF.bottom = bgRectF.bottom;
+        tPath.arcTo(tCornerRectF, 180.0f, -90.0f);
+    }
 
-        tRectF.left = bgRectF.right - outStrokeCorner;
-        tRectF.top = bgRectF.bottom - outStrokeCorner;
-        tRectF.right = bgRectF.right;
-        tRectF.bottom = bgRectF.bottom;
-        tPath.addArc(tRectF, 90.0f, -90.0f);
+    // 在tPath中添加一段右下角的圆角
+    private void addRightBottomCornerPath() {
+        tCornerRectF.left = bgRectF.right - outStrokeCorner * 2;
+        tCornerRectF.top = bgRectF.bottom - outStrokeCorner * 2;
+        tCornerRectF.right = bgRectF.right;
+        tCornerRectF.bottom = bgRectF.bottom;
+        tPath.arcTo(tCornerRectF, 90.0f, -90.0f);
+    }
 
-        tPath.lineTo(bgRectF.right, bgRectF.top + outStrokeCorner / 2.0f);
-
-        tRectF.left = bgRectF.right - outStrokeCorner;
-        tRectF.top = bgRectF.top;
-        tRectF.right = bgRectF.right;
-        tRectF.bottom = bgRectF.top + outStrokeCorner;
-        tPath.addArc(tRectF, 0.0f, -90.0f);
-
-        tPath.lineTo(bgRectF.left + outStrokeCorner / 2.0f, bgRectF.top);
-
-        canvas.drawPath(tPath, strokePaint);
+    // 在tPath中添加一段右上角的圆角
+    private void addRightTopCornerPath() {
+        tCornerRectF.left = bgRectF.right - outStrokeCorner * 2;
+        tCornerRectF.top = bgRectF.top;
+        tCornerRectF.right = bgRectF.right;
+        tCornerRectF.bottom = bgRectF.top + outStrokeCorner * 2;
+        tPath.arcTo(tCornerRectF, 0.0f, -90.0f);
     }
 
     @Override
@@ -517,21 +594,29 @@ public class EasyTableView extends View {
         if (null != onCellClickListener) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN: {
-                    float downX = event.getX();
-                    float downY = event.getY();
+                    downX = event.getX();
+                    downY = event.getY();
                     curTouchCell = getCellByXY(downX, downY);
                     return true;
                 }
-                case MotionEvent.ACTION_CANCEL:
+                case MotionEvent.ACTION_MOVE: {
+                    float moveX = event.getX();
+                    float moveY = event.getY();
+                    if (Math.abs(moveX - downX) > touchSlop && Math.abs(moveY - downY) > touchSlop) {
+                        curTouchCell = null;
+                        return false;
+                    }
+                }
+                break;
                 case MotionEvent.ACTION_UP: {
                     float downX = event.getX();
                     float downY = event.getY();
                     Object cell = getCellByXY(downX, downY);
                     // 按下和释放的是同一个cell
-                    if (cell instanceof GridInfo && curTouchCell instanceof GridInfo &&
-                            ((GridInfo) cell).row == ((GridInfo) curTouchCell).row &&
-                            ((GridInfo) cell).line == ((GridInfo) curTouchCell).line) {
-                        onCellClickListener.onCellClick((GridInfo) cell);
+                    if (cell instanceof CellInfo && curTouchCell instanceof CellInfo &&
+                            ((CellInfo) cell).row == ((CellInfo) curTouchCell).row &&
+                            ((CellInfo) cell).line == ((CellInfo) curTouchCell).line) {
+                        onCellClickListener.onCellClick((CellInfo) cell);
                     } else if (cell instanceof MergeInfo && curTouchCell instanceof MergeInfo &&
                             ((MergeInfo) cell).startRow == ((MergeInfo) curTouchCell).startRow &&
                             ((MergeInfo) cell).endRow == ((MergeInfo) curTouchCell).endRow &&
@@ -562,9 +647,9 @@ public class EasyTableView extends View {
         // 单元格
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
-                if (gridArr[r][l].startX <= x && x <= gridArr[r][l].startX + gridArr[r][l].width &&
-                        gridArr[r][l].startY <= y && y <= gridArr[r][l].startY + gridArr[r][l].height)
-                    return gridArr[r][l];
+                if (cellArr[r][l].startX <= x && x <= cellArr[r][l].startX + cellArr[r][l].width &&
+                        cellArr[r][l].startY <= y && y <= cellArr[r][l].startY + cellArr[r][l].height)
+                    return cellArr[r][l];
 
         return null;
     }
@@ -572,38 +657,42 @@ public class EasyTableView extends View {
     /**
      * 设置数据项，包含表头的内容，将清除表格原有数据，包括合并单元格的数据
      *
-     * @param gridInfoList 数据项
+     * @param cellInfoList 数据项
      */
-    public void setData(ArrayList<GridInfo> gridInfoList) {
-        int size = gridInfoList.size();
+    public void setData(ArrayList<CellInfo> cellInfoList) {
+        if (null == cellInfoList || cellInfoList.size() <= 0)
+            return;
+
+        this.cellInfoList.addAll(cellInfoList);
+        int size = cellInfoList.size();
 
         // 清除原有数据
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
-                gridArr[r][l] = new GridInfo();
+                cellArr[r][l] = new CellInfo();
         if (null != mergeInfoList && mergeInfoList.size() > 0)
             mergeInfoList.clear();
 
         // 赋值
         for (int i = 0; i < size; i++) {
-            GridInfo gridInfo = gridInfoList.get(i);
-            gridArr[gridInfo.row][gridInfo.line] = gridInfo;
+            CellInfo cellInfo = this.cellInfoList.get(i);
+            cellArr[cellInfo.row][cellInfo.line] = cellInfo;
 
-            if (null != gridInfo.texts && gridInfo.texts.length > 0) {
-                if (gridInfo.textColor == 0 && null == gridInfo.textColors) // textColor和textColors都没有设置
-                    gridInfo.textColor = Color.BLACK;
-                if (gridInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
-                    gridInfo.textColors = new int[gridInfo.texts.length];
-                    for (int t = 0; t < gridInfo.texts.length; t++)
-                        gridInfo.textColors[t] = gridInfo.textColor;
+            if (null != cellInfo.texts && cellInfo.texts.length > 0) {
+                if (cellInfo.textColor == 0 && null == cellInfo.textColors) // textColor和textColors都没有设置
+                    cellInfo.textColor = Color.BLACK;
+                if (cellInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
+                    cellInfo.textColors = new int[cellInfo.texts.length];
+                    for (int t = 0; t < cellInfo.texts.length; t++)
+                        cellInfo.textColors[t] = cellInfo.textColor;
                 }
 
-                if (gridInfo.textSize == -1 && null == gridInfo.textSizes) // textSize和textSizes都没有设置
-                    gridInfo.textSize = spToPx(14);
-                if (gridInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
-                    gridInfo.textSizes = new int[gridInfo.texts.length];
-                    for (int t = 0; t < gridInfo.texts.length; t++)
-                        gridInfo.textSizes[t] = gridInfo.textSize;
+                if (cellInfo.textSize == -1 && null == cellInfo.textSizes) // textSize和textSizes都没有设置
+                    cellInfo.textSize = spToPx(14);
+                if (cellInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
+                    cellInfo.textSizes = new int[cellInfo.texts.length];
+                    for (int t = 0; t < cellInfo.texts.length; t++)
+                        cellInfo.textSizes[t] = cellInfo.textSize;
                 }
             }
         }
@@ -613,28 +702,32 @@ public class EasyTableView extends View {
         if (mode != MODE_FIX_WIDTH && mode != MODE_FIX_WIDTH_HEIGHT) {
             float txtWidth;
             float maxWidth;
-            for (int i = 0; i < lines; i++) {
+            float fixMaxWidth;
+            for (int l = 0; l < lines; l++) {
                 maxWidth = 0.0f;
-                for (int j = 0; j < rows; j++) {
-                    if (null != gridArr[j][i].texts) {
-                        if (gridArr[j][i].width < 0) { // 根据测量的字符宽度来计算
-                            textRows = gridArr[j][i].texts.length;
+                fixMaxWidth = -1;
+                for (int r = 0; r < rows; r++) {
+                    if (null != cellArr[r][l].texts) {
+                        if (cellArr[r][l].width < 0) { // 根据测量的字符宽度来计算
+                            textRows = cellArr[r][l].texts.length;
                             for (int t = 0; t < textRows; t++) {
-                                textPaint.setTextSize(gridArr[j][i].textSizes[t]);
-                                txtWidth = textPaint.measureText(gridArr[j][i].texts[t]);
+                                textPaint.setTextSize(cellArr[r][l].textSizes[t]);
+                                txtWidth = textPaint.measureText(cellArr[r][l].texts[t]);
                                 if (maxWidth < txtWidth)
                                     maxWidth = txtWidth;
                             }
                         } else { // 根据设置的值来计算
-                            if (maxWidth < gridArr[j][i].width)
-                                maxWidth = gridArr[j][i].width;
+                            if (fixMaxWidth < cellArr[r][l].width)
+                                fixMaxWidth = cellArr[r][l].width;
                         }
+                    } else if (fixMaxWidth < cellArr[r][l].width) { // 没有字符的时候,直接根据设置的值来计算
+                        fixMaxWidth = cellArr[r][l].width;
                     }
                 }
-                widthArr[i] = maxWidth + strokeSize;
+                if (fixMaxWidth != -1)
+                    maxWidth = fixMaxWidth;
+                widthArr[l] = maxWidth;
             }
-            widthArr[0] = widthArr[0] - strokeSize / 2.0f + outStrokeSize / 2.0f;
-            widthArr[lines - 1] = widthArr[lines - 1] - strokeSize / 2.0f + outStrokeSize / 2.0f;
         }
 
         // 计算出每一行的最大高度
@@ -643,15 +736,17 @@ public class EasyTableView extends View {
             float txtHeight;
             float tempHeight;
             float maxHeight;
-            for (int i = 0; i < rows; i++) {
+            float fixMaxHeight;
+            for (int r = 0; r < rows; r++) {
                 maxHeight = 0.0f;
-                for (int j = 0; j < lines; j++) {
-                    if (null != gridArr[i][j].texts) {
-                        if (gridArr[i][j].height < 0) { // 根据测量的字符高度来计算
+                fixMaxHeight = -1;
+                for (int l = 0; l < lines; l++) {
+                    if (null != cellArr[r][l].texts) {
+                        if (cellArr[r][l].height < 0) { // 根据测量的字符高度来计算
                             tempHeight = 0.0f;
-                            textRows = gridArr[i][j].texts.length;
+                            textRows = cellArr[r][l].texts.length;
                             for (int t = 0; t < textRows; t++) {
-                                textPaint.setTextSize(gridArr[i][j].textSizes[t]);
+                                textPaint.setTextSize(cellArr[r][l].textSizes[t]);
                                 fm = textPaint.getFontMetrics();
                                 txtHeight = fm.bottom - fm.top;
                                 tempHeight += txtHeight;
@@ -660,15 +755,17 @@ public class EasyTableView extends View {
                             if (maxHeight < tempHeight)
                                 maxHeight = tempHeight;
                         } else { // 根据设置的值来计算
-                            if (maxHeight < gridArr[i][j].height)
-                                maxHeight = gridArr[i][j].height;
+                            if (fixMaxHeight < cellArr[r][l].height)
+                                fixMaxHeight = cellArr[r][l].height;
                         }
+                    } else if (fixMaxHeight < cellArr[r][l].height) { // 没有字符的时候，直接根据设置的值来计算
+                        fixMaxHeight = cellArr[r][l].height;
                     }
                 }
-                heightArr[i] = maxHeight + strokeSize;
+                if (fixMaxHeight != -1)
+                    maxHeight = fixMaxHeight;
+                heightArr[r] = maxHeight;
             }
-            heightArr[0] = heightArr[0] - strokeSize / 2.0f + outStrokeSize / 2.0f;
-            heightArr[rows - 1] = heightArr[rows - 1] - strokeSize / 2.0f + outStrokeSize / 2.0f;
         }
 
         // 刷新
@@ -691,7 +788,7 @@ public class EasyTableView extends View {
             MergeInfo mergeInfo = mergeInfoList.get(i);
 
             if (mergeInfo.bgColor == 0)
-                mergeInfo.bgColor = gridArr[mergeInfo.startRow][mergeInfo.startLine].bgColor;
+                mergeInfo.bgColor = cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor;
 
             if (null != mergeInfo.texts && mergeInfo.texts.length > 0) {
                 if (mergeInfo.textColor == 0 && null == mergeInfo.textColors) // textColor和textColors都没有设置
@@ -718,9 +815,31 @@ public class EasyTableView extends View {
     }
 
     /**
+     * 设置行数
+     *
+     * @param rows 行数
+     */
+    public void setRows(int rows) {
+        this.rows = rows;
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * 设置列数
+     *
+     * @param lines 列数
+     */
+    public void setLines(int lines) {
+        this.lines = lines;
+        requestLayout();
+        invalidate();
+    }
+
+    /**
      * 一个单元格的信息
      */
-    public static class GridInfo {
+    public static class CellInfo {
         public static final int TYPE_NONE = 0;
         public static final int TYPE_NORMAL = 1;
         public static final int TYPE_BUTTON = 2;
@@ -786,6 +905,36 @@ public class EasyTableView extends View {
          * 当mergeInfo不为空时，该单元格的信息将使用mergeInfo的信息
          */
         public MergeInfo mergeInfo = null;
+
+        public CellInfo() {
+        }
+
+        public CellInfo(
+                int type,
+                Object tag,
+                int row,
+                int line,
+                float width,
+                float height,
+                int bgColor,
+                int textColor,
+                int[] textColors,
+                int textSize,
+                int[] textSizes,
+                String[] texts) {
+            this.type = type;
+            this.tag = tag;
+            this.row = row;
+            this.line = line;
+            this.width = width;
+            this.height = height;
+            this.bgColor = bgColor;
+            this.textColor = textColor;
+            this.textColors = textColors;
+            this.textSize = textSize;
+            this.textSizes = textSizes;
+            this.texts = texts;
+        }
     }
 
     /**
@@ -860,11 +1009,6 @@ public class EasyTableView extends View {
         public String[] texts;
     }
 
-    private int spToPx(float spValue) {
-        final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
-        return (int) (spValue * fontScale + 0.5f);
-    }
-
     /**
      * 监听单元格、合并后的单元格的点击事件
      */
@@ -872,9 +1016,9 @@ public class EasyTableView extends View {
         /**
          * 单元格点击时回调
          *
-         * @param gridInfo 单元格信息
+         * @param cellInfo 单元格信息
          */
-        public void onCellClick(GridInfo gridInfo);
+        public void onCellClick(CellInfo cellInfo);
 
         /**
          * 合并后的单元格点击时回调
@@ -893,5 +1037,10 @@ public class EasyTableView extends View {
      */
     public void setOnCellClickListener(OnCellClickListener onCellClickListener) {
         this.onCellClickListener = onCellClickListener;
+    }
+
+    private int spToPx(float spValue) {
+        final float fontScale = getContext().getResources().getDisplayMetrics().scaledDensity;
+        return (int) (spValue * fontScale + 0.5f);
     }
 }
