@@ -21,4 +21,24 @@
         </attr>
     </declare-styleable>
 
+    <declare-styleable name="EasyPathView">
+        <attr name="epvFixedWidth" format="integer"/>
+        <attr name="epvFixedHeight" format="integer"/>
+        <attr name="epvPathString" format="string"/>
+        <attr name="epvStrokeColor" format="color"/>
+        <attr name="epvStrokeWidth" format="dimension"/>
+        <attr name="epvStrokeFixedWidth" format="float"/>
+        <attr name="epvStrokeIsRound" format="boolean"/>
+        <attr name="epvAnimDurations" format="string"/>
+        <attr name="epvAnimMode" format="enum">
+            <enum name="together" value="0"/>
+            <enum name="separate" value="1"/>
+        </attr>
+        <attr name="epvState" format="enum">
+            <enum name="show" value="0"/>
+            <enum name="hide" value="1"/>
+        </attr>
+        <attr name="epvDynamic" format="boolean"/>
+    </declare-styleable>
+
 </resources>
