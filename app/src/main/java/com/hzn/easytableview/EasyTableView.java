@@ -16,6 +16,7 @@ import android.view.ViewConfiguration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * 表格视图，带有横竖向表头，表格体类型可扩展，单个单元格支持多行显示不同(颜色、大小)字符，支持合并、取消合并单元格
@@ -233,11 +234,13 @@ public class EasyTableView extends View {
         // 固定模式中（此时宽高不能为wrap_content），确定每一行、每一列的宽高
         if (mode == MODE_FIX_WIDTH || mode == MODE_FIX_WIDTH_HEIGHT) {
             float fixWidth = 1.0f * (bgRectF.right - bgRectF.left) / lines;
+            fixWidth = fixWidth >= outStrokeCorner ? fixWidth : outStrokeCorner;
             for (int l = 0; l < lines; l++)
                 widthArr[l] = fixWidth;
         }
         if (mode == MODE_FIX_HEIGHT || mode == MODE_FIX_WIDTH_HEIGHT) {
             float fixHeight = 1.0f * (bgRectF.bottom - bgRectF.top) / rows;
+            fixHeight = fixHeight >= outStrokeCorner ? fixHeight : outStrokeCorner;
             for (int r = 0; r < rows; r++)
                 heightArr[r] = fixHeight;
         }
@@ -364,7 +367,7 @@ public class EasyTableView extends View {
                         tRectF.bottom = cellArr[r][l].startY + cellArr[r][l].height;
                         this.paint.setColor(cellArr[r][l].bgColor);
                         tPath.reset();
-                        if (rows - 1 == 0 && lines - 1 == 0) {
+                        if (rows == 1 && lines == 1) {
                             // 只有一格
                             tPath.moveTo(tRectF.left - outStrokeCorner, tRectF.top);
                             addLeftTopCornerPath();
@@ -376,7 +379,7 @@ public class EasyTableView extends View {
                             addRightTopCornerPath();
                             tPath.close();
                             canvas.drawPath(tPath, paint);
-                        } else if (rows - 1 == 0 && lines > 1) {
+                        } else if (rows == 1 && lines > 1) {
                             // 只有一行
                             if (l == 0) {
                                 // 最左侧
@@ -402,7 +405,7 @@ public class EasyTableView extends View {
                                 // 中间
                                 canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
                             }
-                        } else if (rows > 1 && lines - 1 == 0) {
+                        } else if (rows > 1 && lines == 1) {
                             // 只有一列
                             if (r == 0) {
                                 // 最上侧
@@ -550,8 +553,14 @@ public class EasyTableView extends View {
             strokePaint.setColor(outStrokeColor);
             strokePaint.setStrokeWidth(outStrokeSize);
 
+            float startPathX;
+            if (outStrokeCorner > 0)
+                startPathX = bgRectF.left + outStrokeCorner;
+            else
+                startPathX = bgRectF.left + outStrokeCorner - outStrokeSize / 2;
+
             tPath.reset();
-            tPath.moveTo(bgRectF.left + outStrokeCorner, bgRectF.top);
+            tPath.moveTo(startPathX, bgRectF.top);
             addLeftTopCornerPath();
             tPath.lineTo(bgRectF.left, bgRectF.bottom - outStrokeCorner);
             addLeftBottomCornerPath();
@@ -764,6 +773,10 @@ public class EasyTableView extends View {
                 }
                 if (fixMaxWidth != -1)
                     maxWidth = fixMaxWidth;
+
+                if (l == 0 || l == lines - 1)
+                    maxWidth = maxWidth >= outStrokeCorner ? maxWidth : outStrokeCorner;
+
                 widthArr[l] = maxWidth;
             }
         }
@@ -802,6 +815,10 @@ public class EasyTableView extends View {
                 }
                 if (fixMaxHeight != -1)
                     maxHeight = fixMaxHeight;
+
+                if (r == 0 || r == rows - 1)
+                    maxHeight = maxHeight >= outStrokeCorner ? maxHeight : outStrokeCorner;
+
                 heightArr[r] = maxHeight;
             }
         }
@@ -831,17 +848,7 @@ public class EasyTableView extends View {
      * @param cellInfos 需要更新的数据项
      */
     public void updateData(CellInfo... cellInfos) {
-        for (CellInfo cellInfo : cellInfos) {
-            if (cellInfo.row < rows && cellInfo.line < lines) {
-                cellArr[cellInfo.row][cellInfo.line] = cellInfo;
-                widthArr[cellInfo.line] = cellInfo.width;
-                heightArr[cellInfo.row] = cellInfo.height;
-                fillTextAttrs(cellInfo);
-            }
-        }
-
-        requestLayout();
-        invalidate();
+        updateData(Arrays.asList(cellInfos));
     }
 
     /**
@@ -849,12 +856,23 @@ public class EasyTableView extends View {
      *
      * @param cellInfoList 需要更新的数据项集合
      */
-    public void updateData(ArrayList<CellInfo> cellInfoList) {
+    public void updateData(List<CellInfo> cellInfoList) {
+        float w;
+        float h;
         for (CellInfo cellInfo : cellInfoList) {
             if (cellInfo.row < rows && cellInfo.line < lines) {
                 cellArr[cellInfo.row][cellInfo.line] = cellInfo;
-                widthArr[cellInfo.line] = cellInfo.width;
-                heightArr[cellInfo.row] = cellInfo.height;
+
+                w = cellInfo.width;
+                if ((cellInfo.line == 0 || cellInfo.line == lines - 1) && cellInfo.width < outStrokeCorner)
+                    w = outStrokeCorner;
+
+                h = cellInfo.height;
+                if ((cellInfo.row == 0 || cellInfo.row == rows - 1) && cellInfo.height < outStrokeCorner)
+                    h = outStrokeCorner;
+
+                widthArr[cellInfo.line] = w;
+                heightArr[cellInfo.row] = h;
                 fillTextAttrs(cellInfo);
             }
         }
@@ -1248,12 +1266,34 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 设置边框四周圆角半径
+     * 设置边框四周圆角半径，半径大于四周单元格的长或宽时，将取四周单元格的长或宽的较小值
      *
-     * @param outStrokeCorner 圆角半径，单位px
+     * @param outStrokeCorner 圆角半径，小于0时，默认设置为四周单元格的长或宽的较小值，单位px
      */
     public void setOutStrokeCorner(int outStrokeCorner) {
-        this.outStrokeCorner = outStrokeCorner;
+        float min = cellArr[0][0].width;
+        if (min > cellArr[0][0].height)
+            min = cellArr[0][0].height;
+
+        if (min > cellArr[0][lines - 1].width)
+            min = cellArr[0][lines - 1].width;
+        if (min > cellArr[0][lines - 1].height)
+            min = cellArr[0][lines - 1].height;
+
+        if (min > cellArr[rows - 1][0].width)
+            min = cellArr[rows - 1][0].width;
+        if (min > cellArr[rows - 1][0].height)
+            min = cellArr[rows - 1][0].height;
+
+        if (min > cellArr[rows - 1][lines - 1].width)
+            min = cellArr[rows - 1][lines - 1].width;
+        if (min > cellArr[rows - 1][lines - 1].height)
+            min = cellArr[rows - 1][lines - 1].height;
+
+        if (outStrokeCorner < 0 || outStrokeCorner > min)
+            this.outStrokeCorner = (int) (min + 0.5f);
+        else
+            this.outStrokeCorner = outStrokeCorner;
     }
 
     public int getMode() {

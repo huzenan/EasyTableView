@@ -360,15 +360,10 @@ public class MainActivity extends AppCompatActivity {
                         lines = Integer.valueOf(etLines.getText().toString());
                         tableChanged = true;
                     }
-                    if (!TextUtils.isEmpty(etCorner.getText())) {
-                        corner = Integer.valueOf(etCorner.getText().toString());
-                        tableChanged = true;
-                    }
 
                     if (tableChanged) {
                         // table
                         initData(rows, lines);
-                        table.setOutStrokeCorner(corner);
                         table.setData(rows, lines, cellInfoList);
                         table.reset();
 
@@ -379,6 +374,13 @@ public class MainActivity extends AppCompatActivity {
 
                         unselectCell();
                     } else {
+                        // corner
+                        if (!TextUtils.isEmpty(etCorner.getText())) {
+                            corner = Integer.valueOf(etCorner.getText().toString());
+                            table.setOutStrokeCorner(corner);
+                            table.reset();
+                        }
+
                         // texts
                         if (!TextUtils.isEmpty(et_text.getText())) {
                             String texts = et_text.getText().toString();
