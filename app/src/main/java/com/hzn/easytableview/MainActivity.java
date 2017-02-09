@@ -29,14 +29,16 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar sbHeight;
     private TextView tvWidthPercent;
     private TextView tvHeightPercent;
-    private EditText et1;
-    private EditText et2;
-    private EditText et3;
+    private EditText et_text;
     private EditText etRows;
     private EditText etLines;
     private EditText etCorner;
     private EditText etSize;
     private RadioGroup rg;
+    private EditText et_new_rows_lines;
+    private EditText et_new_size;
+    private EditText et_start;
+    private EditText et_end;
     private Button btnClear;
     private Button btnDone;
 
@@ -46,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<EasyTableView.CellInfo> cellInfoList;
 
     private EasyTableView.CellInfo curCellInfo;
-    private int[][] pWidth;
-    private int[][] pHeight;
+    //    private int[][] pWidth;
+//    private int[][] pHeight;
     private float w;
     private float h;
 
@@ -70,14 +72,14 @@ public class MainActivity extends AppCompatActivity {
         this.lines = lines;
 
         curCellInfo = null;
-        pWidth = new int[rows][lines];
-        pHeight = new int[rows][lines];
-        for (int r = 0; r < rows; r++) {
-            for (int l = 0; l < lines; l++) {
-                pWidth[r][l] = 100;
-                pHeight[r][l] = 100;
-            }
-        }
+//        pWidth = new int[rows][lines];
+//        pHeight = new int[rows][lines];
+//        for (int r = 0; r < rows; r++) {
+//            for (int l = 0; l < lines; l++) {
+//                pWidth[r][l] = 100;
+//                pHeight[r][l] = 100;
+//            }
+//        }
 
         dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(dm);
@@ -108,14 +110,17 @@ public class MainActivity extends AppCompatActivity {
         tvWidthPercent = (TextView) findViewById(R.id.tv_width_percent);
         tvHeightPercent = (TextView) findViewById(R.id.tv_height_percent);
 
-        et1 = (EditText) findViewById(R.id.et1);
-        et2 = (EditText) findViewById(R.id.et2);
-        et3 = (EditText) findViewById(R.id.et3);
-
+        et_text = (EditText) findViewById(R.id.et_text);
         etRows = (EditText) findViewById(R.id.et_rows);
         etLines = (EditText) findViewById(R.id.et_lines);
         etCorner = (EditText) findViewById(R.id.et_corner);
         etSize = (EditText) findViewById(R.id.et_size);
+
+        et_new_rows_lines = (EditText) findViewById(R.id.et_new_rows_lines);
+        et_new_size = (EditText) findViewById(R.id.et_new_size);
+
+        et_start = (EditText) findViewById(R.id.et_start);
+        et_end = (EditText) findViewById(R.id.et_end);
 
         // main
         layoutMain = (RelativeLayout) findViewById(R.id.layout_main);
@@ -161,10 +166,10 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (null != curCellInfo) {
                     // 更新宽度时，该单元格所在列都得更新
-                    for (int r = 0; r < rows; r++)
-                        pWidth[r][curCellInfo.line] = progress;
+//                    for (int r = 0; r < rows; r++)
+//                        pWidth[r][curCellInfo.line] = progress;
 
-                    tvWidthPercent.setText(pWidth[curCellInfo.row][curCellInfo.line] + "%");
+                    tvWidthPercent.setText(progress + "%");
                     curCellInfo.width = w * progress / 100.0f;
                     table.updateData(curCellInfo);
                 }
@@ -188,11 +193,10 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (null != curCellInfo) {
                     // 更新高度时，该单元格所在行都得更新
-                    for (int l = 0; l < lines; l++)
-                        pHeight[curCellInfo.row][l] = progress;
+//                    for (int l = 0; l < lines; l++)
+//                        pHeight[curCellInfo.row][l] = progress;
 
-                    pHeight[curCellInfo.row][curCellInfo.line] = progress;
-                    tvHeightPercent.setText(pHeight[curCellInfo.row][curCellInfo.line] + "%");
+                    tvHeightPercent.setText(progress + "%");
                     curCellInfo.height = h * progress / 100.0f;
                     table.updateData(curCellInfo);
                 }
@@ -230,6 +234,98 @@ public class MainActivity extends AppCompatActivity {
                     case R.id.rb_out_stroke:
                         curSelect = SELECT_OUT_STROKE;
                         break;
+                }
+            }
+        });
+
+
+        // add
+        (findViewById(R.id.tv_rt)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+
+                    int newSize = -1;
+                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
+                        newSize = Integer.valueOf(et_new_size.getText().toString());
+
+                    table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_TOP);
+                    unselectCell();
+                }
+            }
+        });
+        (findViewById(R.id.tv_rb)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+
+                    int newSize = -1;
+                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
+                        newSize = Integer.valueOf(et_new_size.getText().toString());
+
+                    table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_BOTTOM);
+                    unselectCell();
+                }
+            }
+        });
+        (findViewById(R.id.tv_ll)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+
+                    int newSize = -1;
+                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
+                        newSize = Integer.valueOf(et_new_size.getText().toString());
+
+                    table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_LEFT);
+                    unselectCell();
+                }
+            }
+        });
+        (findViewById(R.id.tv_lr)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+
+                    int newSize = -1;
+                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
+                        newSize = Integer.valueOf(et_new_size.getText().toString());
+
+                    table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_RIGHT);
+                    unselectCell();
+                }
+            }
+        });
+
+
+        // remove
+        (findViewById(R.id.tv_remove_rows)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_start.getText().toString()) &&
+                        !TextUtils.isEmpty(et_end.getText().toString())) {
+                    int start = Integer.valueOf(et_start.getText().toString());
+                    int end = Integer.valueOf(et_end.getText().toString());
+                    boolean success = table.removeRows(start, end);
+                    if (success)
+                        unselectCell();
+                }
+            }
+        });
+        (findViewById(R.id.tv_remove_lines)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!TextUtils.isEmpty(et_start.getText().toString()) &&
+                        !TextUtils.isEmpty(et_end.getText().toString())) {
+                    int start = Integer.valueOf(et_start.getText().toString());
+                    int end = Integer.valueOf(et_end.getText().toString());
+                    boolean success = table.removeLines(start, end);
+                    if (success)
+                        unselectCell();
                 }
             }
         });
@@ -276,10 +372,7 @@ public class MainActivity extends AppCompatActivity {
                         table.setData(rows, lines, cellInfoList);
                         table.reset();
 
-                        et1.setText("");
-                        et2.setText("");
-                        et3.setText("");
-
+                        et_text.setText("");
                         etRows.setText("");
                         etLines.setText("");
                         etCorner.setText("");
@@ -287,23 +380,9 @@ public class MainActivity extends AppCompatActivity {
                         unselectCell();
                     } else {
                         // texts
-                        int textRows = 0;
-                        if (!TextUtils.isEmpty(et1.getText()))
-                            ++textRows;
-                        if (!TextUtils.isEmpty(et2.getText()))
-                            ++textRows;
-                        if (!TextUtils.isEmpty(et3.getText()))
-                            ++textRows;
-
-                        if (textRows > 0) {
-                            int index = 0;
-                            curCellInfo.texts = new String[textRows];
-                            if (!TextUtils.isEmpty(et1.getText()))
-                                curCellInfo.texts[index++] = et1.getText().toString();
-                            if (!TextUtils.isEmpty(et2.getText()))
-                                curCellInfo.texts[index++] = et2.getText().toString();
-                            if (!TextUtils.isEmpty(et3.getText()))
-                                curCellInfo.texts[index++] = et3.getText().toString();
+                        if (!TextUtils.isEmpty(et_text.getText())) {
+                            String texts = et_text.getText().toString();
+                            curCellInfo.texts = texts.split(";");
                         }
 
                         if (!TextUtils.isEmpty(etSize.getText())) {
@@ -334,10 +413,12 @@ public class MainActivity extends AppCompatActivity {
     private void selectCell(EasyTableView.CellInfo cellInfo) {
         curCellInfo = cellInfo;
         layoutSettings.setVisibility(View.VISIBLE);
-        sbWidth.setProgress(pWidth[curCellInfo.row][curCellInfo.line]);
-        sbHeight.setProgress(pHeight[curCellInfo.row][curCellInfo.line]);
-        tvWidthPercent.setText(pWidth[curCellInfo.row][curCellInfo.line] + "%");
-        tvHeightPercent.setText(pHeight[curCellInfo.row][curCellInfo.line] + "%");
+        int pWidth = (int) ((1.0f * cellInfo.width / w) * 100);
+        int pHeight = (int) ((1.0f * cellInfo.height / h) * 100);
+        sbWidth.setProgress(pWidth);
+        sbHeight.setProgress(pHeight);
+        tvWidthPercent.setText(pWidth + "%");
+        tvHeightPercent.setText(pHeight + "%");
         removeSelectRect();
         addSelectRect();
     }

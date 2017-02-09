@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * 表格视图，带有横竖向表头，表格体类型可扩展，单个单元格支持多行显示不同(颜色、大小)字符，支持合并、取消合并单元格
@@ -47,14 +48,47 @@ public class EasyTableView extends View {
     // 模式，分为MODE_NORMAL、MODE_FIX_WIDTH、MODE_FIX_HEIGHT和MODE_FIX_WIDTH_HEIGHT，默认为MODE_NORMAL
     private int mode;
 
-    // 正常模式，表格的宽和高都由表格内容决定
+    /**
+     * 正常模式，表格的宽和高都由表格内容决定
+     */
     public static final int MODE_NORMAL = 0;
-    // 固定宽模式，表格的宽由width属性决定，每一列的宽度平均分，高由表格内容决定
+    /**
+     * 固定宽模式，表格的宽由width属性决定，每一列的宽度平均分，高由表格内容决定
+     */
     public static final int MODE_FIX_WIDTH = 1;
-    // 固定高模式，表格的高由height属性决定，每一行的高度平均分，宽由表格内容决定
+    /**
+     * 固定高模式，表格的高由height属性决定，每一行的高度平均分，宽由表格内容决定
+     */
     public static final int MODE_FIX_HEIGHT = 2;
-    // 固定宽高模式，表格的宽、高分别由width、height属性决定，每一行、每一列都平均分
+    /**
+     * 固定宽高模式，表格的宽、高分别由width、height属性决定，每一行、每一列都平均分
+     */
     public static final int MODE_FIX_WIDTH_HEIGHT = 3;
+
+    /**
+     * 在某行顶部添加若干行
+     */
+    public static final int ADD_ROWS_TOP = 0;
+    /**
+     * 在某行底部添加若干行
+     */
+    public static final int ADD_ROWS_BOTTOM = 1;
+    /**
+     * 在某列左侧添加若干列
+     */
+    public static final int ADD_LINES_LEFT = 2;
+    /**
+     * 在某列右侧添加若干列
+     */
+    public static final int ADD_LINES_RIGHT = 3;
+    /**
+     * 添加新行的默认高度
+     */
+    public static final float ADD_ROWS_DEFAULT_HEIGHT = 20.0f;
+    /**
+     * 添加新列的默认宽度
+     */
+    public static final float ADD_LINES_DEFAULT_WIDTH = 20.0f;
 
     private Paint paint;
     private Paint strokePaint;
@@ -693,9 +727,12 @@ public class EasyTableView extends View {
         int size = cellInfoList.size();
         for (int i = 0; i < size; i++) {
             CellInfo cellInfo = cellInfoList.get(i);
-            cellArr[cellInfo.row][cellInfo.line] = cellInfo;
 
-            fillTextAttrs(cellInfo);
+            // 超出表格范围的数据不处理
+            if (cellInfo.row < rows && cellInfo.line < lines) {
+                cellArr[cellInfo.row][cellInfo.line] = cellInfo;
+                fillTextAttrs(cellInfo);
+            }
         }
 
         // 计算出每一列的最大宽度
@@ -795,11 +832,12 @@ public class EasyTableView extends View {
      */
     public void updateData(CellInfo... cellInfos) {
         for (CellInfo cellInfo : cellInfos) {
-            cellArr[cellInfo.row][cellInfo.line] = cellInfo;
-            widthArr[cellInfo.line] = cellInfo.width;
-            heightArr[cellInfo.row] = cellInfo.height;
-
-            fillTextAttrs(cellInfo);
+            if (cellInfo.row < rows && cellInfo.line < lines) {
+                cellArr[cellInfo.row][cellInfo.line] = cellInfo;
+                widthArr[cellInfo.line] = cellInfo.width;
+                heightArr[cellInfo.row] = cellInfo.height;
+                fillTextAttrs(cellInfo);
+            }
         }
 
         requestLayout();
@@ -813,15 +851,227 @@ public class EasyTableView extends View {
      */
     public void updateData(ArrayList<CellInfo> cellInfoList) {
         for (CellInfo cellInfo : cellInfoList) {
-            cellArr[cellInfo.row][cellInfo.line] = cellInfo;
-            widthArr[cellInfo.line] = cellInfo.width;
-            heightArr[cellInfo.row] = cellInfo.height;
-
-            fillTextAttrs(cellInfo);
+            if (cellInfo.row < rows && cellInfo.line < lines) {
+                cellArr[cellInfo.row][cellInfo.line] = cellInfo;
+                widthArr[cellInfo.line] = cellInfo.width;
+                heightArr[cellInfo.row] = cellInfo.height;
+                fillTextAttrs(cellInfo);
+            }
         }
 
         requestLayout();
         invalidate();
+    }
+
+    /**
+     * 添加若干新行
+     *
+     * @param curRow    在此行的顶部或底部添加，小于0则为0，大于等于rows则为rows-1
+     * @param newRows   新添加的行数
+     * @param height    新行的高度，单位px，小于0时使用默认高度ADD_ROWS_DEFAULT_HEIGHT
+     * @param direction 方向，为ADD_ROWS_TOP或ADD_ROWS_BOTTOM
+     * @return 是否添加成功
+     */
+    public boolean addNewRows(int curRow, int newRows, float height, int direction) {
+        if (newRows <= 0)
+            return false;
+
+        if (curRow < 0)
+            curRow = 0;
+        if (curRow >= rows)
+            curRow = rows - 1;
+
+        if (direction == ADD_ROWS_TOP)
+            --curRow;
+
+        if (height < 0)
+            height = ADD_ROWS_DEFAULT_HEIGHT;
+
+        // 复制数据并添加新行
+        CellInfo[][] tCellArr = new CellInfo[rows + newRows][lines];
+        float[] tHeightArr = new float[rows + newRows];
+        for (int r = 0; r <= curRow; r++) {
+            tCellArr[r] = Arrays.copyOf(cellArr[r], lines);
+            tHeightArr[r] = heightArr[r];
+        }
+        for (int r = curRow + 1; r <= curRow + newRows; r++) {
+            tCellArr[r] = new CellInfo[lines];
+            tHeightArr[r] = height;
+
+            for (int l = 0; l < lines; l++)
+                tCellArr[r][l] = new CellInfo();
+        }
+        for (int r = curRow + newRows + 1; r < rows + newRows; r++) {
+            tCellArr[r] = Arrays.copyOf(cellArr[r - newRows], lines);
+            tHeightArr[r] = heightArr[r - newRows];
+        }
+
+        // 释放原数据
+        for (int r = 0; r < rows; r++)
+            for (int l = 0; l < lines; l++)
+                cellArr[r][l] = null;
+        heightArr = null;
+
+        rows += newRows;
+
+        cellArr = tCellArr;
+        heightArr = tHeightArr;
+
+        requestLayout();
+        invalidate();
+
+        return true;
+    }
+
+    /**
+     * 删除若干行，将同时删除数据
+     *
+     * @param start 起始行，范围0~(rows-1)
+     * @param end   结束行，范围0~(rows-1)
+     * @return 是否删除成功
+     */
+    public boolean removeRows(int start, int end) {
+        int rowsToDel = end - start + 1;
+        if (rowsToDel <= 0 || rowsToDel >= rows)
+            return false;
+
+        // 复制数据并删除旧行
+        int newRows = rows - rowsToDel;
+        CellInfo[][] tCellArr = new CellInfo[newRows][lines];
+        float[] tHeightArr = new float[newRows];
+        for (int r = 0; r < start; r++) {
+            tCellArr[r] = Arrays.copyOf(cellArr[r], lines);
+            tHeightArr[r] = heightArr[r];
+        }
+        for (int r = end + 1; r < rows; r++) {
+            tCellArr[r - rowsToDel] = Arrays.copyOf(cellArr[r], lines);
+            tHeightArr[r - rowsToDel] = heightArr[r];
+        }
+
+        // 释放原数据
+        for (int r = 0; r < rows; r++)
+            for (int l = 0; l < lines; l++)
+                cellArr[r][l] = null;
+        heightArr = null;
+
+        rows = newRows;
+
+        cellArr = tCellArr;
+        heightArr = tHeightArr;
+
+        requestLayout();
+        invalidate();
+
+        return true;
+    }
+
+    /**
+     * 添加若干新列
+     *
+     * @param curLine   在此列的左侧或右侧添加，小于0则为0，大于等于lines则为lines-1
+     * @param newLines  新添加的行数
+     * @param width     新行的高度，单位px，小于0时使用默认高度ADD_ROWS_DEFAULT_HEIGHT
+     * @param direction 方向，为ADD_LINES_LEFT或ADD_LINES_RIGHT
+     * @return 是否添加成功
+     */
+    public boolean addNewLines(int curLine, int newLines, float width, int direction) {
+        if (newLines <= 0)
+            return false;
+
+        if (curLine < 0)
+            curLine = 0;
+        if (curLine >= lines)
+            curLine = lines - 1;
+
+        if (direction == ADD_LINES_LEFT)
+            --curLine;
+
+        if (width < 0)
+            width = ADD_LINES_DEFAULT_WIDTH;
+
+        // 复制数据并添加新列
+        CellInfo[][] tCellArr = new CellInfo[rows][lines + newLines];
+        float[] tWidthArr = new float[lines + newLines];
+        for (int r = 0; r < rows; r++) {
+            tCellArr[r] = new CellInfo[lines + newLines];
+            for (int l = 0; l <= curLine; l++)
+                tCellArr[r][l] = cellArr[r][l];
+            for (int l = curLine + 1; l <= curLine + newLines; l++)
+                tCellArr[r][l] = new CellInfo();
+            for (int l = curLine + newLines + 1; l < lines + newLines; l++)
+                tCellArr[r][l] = cellArr[r][l - newLines];
+        }
+
+        // 各列宽度只需要赋值一次
+        for (int l = 0; l <= curLine; l++)
+            tWidthArr[l] = widthArr[l];
+        for (int l = curLine + 1; l <= curLine + newLines; l++)
+            tWidthArr[l] = width;
+        for (int l = curLine + newLines + 1; l < lines + newLines; l++)
+            tWidthArr[l] = widthArr[l - newLines];
+
+        // 释放原数据
+        for (int r = 0; r < rows; r++)
+            for (int l = 0; l < lines; l++)
+                cellArr[r][l] = null;
+        widthArr = null;
+
+        lines += newLines;
+
+        cellArr = tCellArr;
+        widthArr = tWidthArr;
+
+        requestLayout();
+        invalidate();
+
+        return true;
+    }
+
+    /**
+     * 删除若干列，将删除数据
+     *
+     * @param start 起始列，范围0~(lines-1)
+     * @param end   结束列，范围0~(lines-1)
+     * @return 是否删除成功
+     */
+    public boolean removeLines(int start, int end) {
+        int linesToDel = end - start + 1;
+        if (linesToDel <= 0 || linesToDel >= lines)
+            return false;
+
+        // 复制数据并删除旧列
+        int newLines = lines - linesToDel;
+        CellInfo[][] tCellArr = new CellInfo[rows][newLines];
+        float[] tWidthArr = new float[newLines];
+        for (int r = 0; r < rows; r++) {
+            tCellArr[r] = new CellInfo[newLines];
+            for (int l = 0; l < start; l++)
+                tCellArr[r][l] = cellArr[r][l];
+            for (int l = end + 1; l < lines; l++)
+                tCellArr[r][l - linesToDel] = cellArr[r][l];
+        }
+
+        // 各列宽度只需赋值一次
+        for (int l = 0; l < start; l++)
+            tWidthArr[l] = widthArr[l];
+        for (int l = end + 1; l < lines; l++)
+            tWidthArr[l - linesToDel] = widthArr[l];
+
+        // 释放原数据
+        for (int r = 0; r < rows; r++)
+            for (int l = 0; l < lines; l++)
+                cellArr[r][l] = null;
+        widthArr = null;
+
+        lines = newLines;
+
+        cellArr = tCellArr;
+        widthArr = tWidthArr;
+
+        requestLayout();
+        invalidate();
+
+        return true;
     }
 
     // 填充单元格texts的属性，包括textColors和textSizes
@@ -1006,6 +1256,13 @@ public class EasyTableView extends View {
         this.outStrokeCorner = outStrokeCorner;
     }
 
+    public int getMode() {
+        return mode;
+    }
+
+    public void setMode(int mode) {
+        this.mode = mode;
+    }
 
     /**
      * 重置，在更新了表格参数后，需要调用此方法重绘表格

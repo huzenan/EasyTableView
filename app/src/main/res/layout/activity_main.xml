@@ -42,33 +42,74 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="left|center_vertical"
             android:orientation="horizontal"
-            android:padding="10dp"
             >
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="width "
-                />
-
-            <SeekBar
-                android:id="@+id/sb_width"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="200"
-                android:progress="100"
-                />
+                android:gravity="left|center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                >
 
-            <TextView
-                android:id="@+id/tv_width_percent"
-                android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="w"
+                    />
+
+                <SeekBar
+                    android:id="@+id/sb_width"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="200"
+                    android:progress="100"
+                    />
+
+                <TextView
+                    android:id="@+id/tv_width_percent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100%"
+                    android:textSize="10sp"
+                    />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="100%"
-                android:textSize="16sp"
-                />
+                android:layout_weight="1"
+                android:gravity="left|center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp"
+                >
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="h"
+                    />
+
+                <SeekBar
+                    android:id="@+id/sb_height"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="200"
+                    android:progress="100"
+                    />
+
+                <TextView
+                    android:id="@+id/tv_height_percent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="100%"
+                    android:textSize="10sp"
+                    />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -76,41 +117,9 @@
             android:layout_height="wrap_content"
             android:gravity="left|center_vertical"
             android:orientation="horizontal"
-            android:padding="10dp"
-            >
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="height"
-                />
-
-            <SeekBar
-                android:id="@+id/sb_height"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="200"
-                android:progress="100"
-                />
-
-            <TextView
-                android:id="@+id/tv_height_percent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="100%"
-                android:textSize="16sp"
-                />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="left|center_vertical"
-            android:orientation="horizontal"
+            android:paddingBottom="10dp"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
-            android:paddingBottom="10dp"
             >
 
             <TextView
@@ -120,94 +129,26 @@
                 />
 
             <EditText
-                android:id="@+id/et1"
-                android:layout_width="50dp"
+                android:id="@+id/et_text"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
+                android:hint="with ';' to start new lines"
                 android:maxLines="1"
-                />
-
-            <EditText
-                android:id="@+id/et2"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:maxLines="1"
-                />
-
-            <EditText
-                android:id="@+id/et3"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:maxLines="1"
+                android:textColorHint="@color/gray"
+                android:textSize="14sp"
                 />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="left|center_vertical"
-            android:orientation="horizontal"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp"
-            android:paddingBottom="10dp"
-            >
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="rows"
-                />
-
-            <EditText
-                android:id="@+id/et_rows"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:inputType="number"
-                />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
-                android:text="lines"
-                />
-
-            <EditText
-                android:id="@+id/et_lines"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:inputType="number"
-                />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
-                android:text="corner"
-                />
-
-            <EditText
-                android:id="@+id/et_corner"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="10dp"
-                android:inputType="number"
-                />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="left|center_vertical"
-            android:orientation="horizontal"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp"
-            android:paddingBottom="10dp"
             android:clickable="true"
+            android:gravity="left|center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
             >
 
             <TextView
@@ -340,10 +281,246 @@
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
-                android:inputType="number"
                 android:hint="sp/dp"
+                android:inputType="number"
                 android:textColorHint="@color/gray"
                 android:textSize="14sp"
+                />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="left|center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="rows"
+                />
+
+            <EditText
+                android:id="@+id/et_rows"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:text="lines"
+                />
+
+            <EditText
+                android:id="@+id/et_lines"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:text="corner"
+                />
+
+            <EditText
+                android:id="@+id/et_corner"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="add"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="r/l"
+                />
+
+            <EditText
+                android:id="@+id/et_new_rows_lines"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="size"
+                />
+
+            <EditText
+                android:id="@+id/et_new_size"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:id="@+id/tv_rt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="rt"
+                android:textColor="@color/white"
+                />
+
+            <TextView
+                android:id="@+id/tv_rb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="rb"
+                android:textColor="@color/white"
+                />
+
+            <TextView
+                android:id="@+id/tv_ll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="ll"
+                android:textColor="@color/white"
+                />
+
+            <TextView
+                android:id="@+id/tv_lr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="lr"
+                android:textColor="@color/white"
+                />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="remove"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="start"
+                />
+
+            <EditText
+                android:id="@+id/et_start"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="end"
+                />
+
+            <EditText
+                android:id="@+id/et_end"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                />
+
+            <TextView
+                android:id="@+id/tv_remove_rows"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="rows"
+                android:textColor="@color/white"
+                />
+
+            <TextView
+                android:id="@+id/tv_remove_lines"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="10dp"
+                android:text="lines"
+                android:textColor="@color/white"
                 />
         </LinearLayout>
 
