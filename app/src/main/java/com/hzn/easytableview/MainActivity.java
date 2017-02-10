@@ -29,16 +29,21 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar sbHeight;
     private TextView tvWidthPercent;
     private TextView tvHeightPercent;
-    private EditText et_text;
+    private EditText etText;
     private EditText etRows;
     private EditText etLines;
     private EditText etCorner;
     private EditText etSize;
     private RadioGroup rg;
-    private EditText et_new_rows_lines;
-    private EditText et_new_size;
-    private EditText et_start;
-    private EditText et_end;
+    private EditText etNewRowsLines;
+    private EditText etNewSize;
+    private EditText etStart;
+    private EditText etEnd;
+    private EditText etStartRow;
+    private EditText etStartLine;
+    private EditText etEndRow;
+    private EditText etEndLine;
+    private TextView tvMerge;
     private Button btnClear;
     private Button btnDone;
 
@@ -48,8 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<EasyTableView.CellInfo> cellInfoList;
 
     private EasyTableView.CellInfo curCellInfo;
-    //    private int[][] pWidth;
-//    private int[][] pHeight;
+    private EasyTableView.MergeInfo curMergeInfo;
     private float w;
     private float h;
 
@@ -72,14 +76,6 @@ public class MainActivity extends AppCompatActivity {
         this.lines = lines;
 
         curCellInfo = null;
-//        pWidth = new int[rows][lines];
-//        pHeight = new int[rows][lines];
-//        for (int r = 0; r < rows; r++) {
-//            for (int l = 0; l < lines; l++) {
-//                pWidth[r][l] = 100;
-//                pHeight[r][l] = 100;
-//            }
-//        }
 
         dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(dm);
@@ -110,30 +106,37 @@ public class MainActivity extends AppCompatActivity {
         tvWidthPercent = (TextView) findViewById(R.id.tv_width_percent);
         tvHeightPercent = (TextView) findViewById(R.id.tv_height_percent);
 
-        et_text = (EditText) findViewById(R.id.et_text);
+        etText = (EditText) findViewById(R.id.et_text);
         etRows = (EditText) findViewById(R.id.et_rows);
         etLines = (EditText) findViewById(R.id.et_lines);
         etCorner = (EditText) findViewById(R.id.et_corner);
         etSize = (EditText) findViewById(R.id.et_size);
 
-        et_new_rows_lines = (EditText) findViewById(R.id.et_new_rows_lines);
-        et_new_size = (EditText) findViewById(R.id.et_new_size);
+        etNewRowsLines = (EditText) findViewById(R.id.et_new_rows_lines);
+        etNewSize = (EditText) findViewById(R.id.et_new_size);
 
-        et_start = (EditText) findViewById(R.id.et_start);
-        et_end = (EditText) findViewById(R.id.et_end);
+        etStart = (EditText) findViewById(R.id.et_start);
+        etEnd = (EditText) findViewById(R.id.et_end);
+
+        etStartRow = (EditText) findViewById(R.id.et_start_row);
+        etStartLine = (EditText) findViewById(R.id.et_start_line);
+        etEndRow = (EditText) findViewById(R.id.et_end_row);
+        etEndLine = (EditText) findViewById(R.id.et_end_line);
 
         // main
         layoutMain = (RelativeLayout) findViewById(R.id.layout_main);
         layoutMain.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if (null != curCellInfo) {
-                    switch (event.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            if (event.getRawY() < layoutSettings.getY())
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        if (event.getRawY() < layoutSettings.getY()) {
+                            if (null != curCellInfo)
                                 unselectCell();
-                            break;
-                    }
+                            else if (null != curMergeInfo)
+                                unselectMergeCell();
+                        }
+                        break;
                 }
                 return false;
             }
@@ -146,6 +149,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCellClick(EasyTableView.CellInfo cellInfo) {
                 if (null == curCellInfo || curCellInfo != cellInfo) {
+                    curMergeInfo = null;
+                    tvMerge.setText("MERGE");
                     selectCell(cellInfo);
                 } else {
                     unselectCell();
@@ -154,7 +159,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onMergedCellClick(EasyTableView.MergeInfo mergeInfo) {
-                // TODO
+                if (null == curMergeInfo || curMergeInfo != mergeInfo) {
+                    curCellInfo = null;
+                    tvMerge.setText("UNMERGE");
+                    selectMergeCell(mergeInfo);
+                } else {
+                    unselectMergeCell();
+                }
             }
         });
 
@@ -165,10 +176,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (null != curCellInfo) {
-                    // 更新宽度时，该单元格所在列都得更新
-//                    for (int r = 0; r < rows; r++)
-//                        pWidth[r][curCellInfo.line] = progress;
-
                     tvWidthPercent.setText(progress + "%");
                     curCellInfo.width = w * progress / 100.0f;
                     table.updateData(curCellInfo);
@@ -192,10 +199,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (null != curCellInfo) {
-                    // 更新高度时，该单元格所在行都得更新
-//                    for (int l = 0; l < lines; l++)
-//                        pHeight[curCellInfo.row][l] = progress;
-
                     tvHeightPercent.setText(progress + "%");
                     curCellInfo.height = h * progress / 100.0f;
                     table.updateData(curCellInfo);
@@ -243,12 +246,12 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_rt)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
-                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+                if (!TextUtils.isEmpty(etNewRowsLines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(etNewRowsLines.getText().toString());
 
                     int newSize = -1;
-                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
-                        newSize = Integer.valueOf(et_new_size.getText().toString());
+                    if (!TextUtils.isEmpty(etNewSize.getText().toString()))
+                        newSize = Integer.valueOf(etNewSize.getText().toString());
 
                     table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_TOP);
                     unselectCell();
@@ -258,12 +261,12 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_rb)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
-                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+                if (!TextUtils.isEmpty(etNewRowsLines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(etNewRowsLines.getText().toString());
 
                     int newSize = -1;
-                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
-                        newSize = Integer.valueOf(et_new_size.getText().toString());
+                    if (!TextUtils.isEmpty(etNewSize.getText().toString()))
+                        newSize = Integer.valueOf(etNewSize.getText().toString());
 
                     table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_BOTTOM);
                     unselectCell();
@@ -273,12 +276,12 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_ll)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
-                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+                if (!TextUtils.isEmpty(etNewRowsLines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(etNewRowsLines.getText().toString());
 
                     int newSize = -1;
-                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
-                        newSize = Integer.valueOf(et_new_size.getText().toString());
+                    if (!TextUtils.isEmpty(etNewSize.getText().toString()))
+                        newSize = Integer.valueOf(etNewSize.getText().toString());
 
                     table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_LEFT);
                     unselectCell();
@@ -288,12 +291,12 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_lr)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_new_rows_lines.getText().toString())) {
-                    int newRowsLines = Integer.valueOf(et_new_rows_lines.getText().toString());
+                if (!TextUtils.isEmpty(etNewRowsLines.getText().toString())) {
+                    int newRowsLines = Integer.valueOf(etNewRowsLines.getText().toString());
 
                     int newSize = -1;
-                    if (!TextUtils.isEmpty(et_new_size.getText().toString()))
-                        newSize = Integer.valueOf(et_new_size.getText().toString());
+                    if (!TextUtils.isEmpty(etNewSize.getText().toString()))
+                        newSize = Integer.valueOf(etNewSize.getText().toString());
 
                     table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_RIGHT);
                     unselectCell();
@@ -306,10 +309,10 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_remove_rows)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_start.getText().toString()) &&
-                        !TextUtils.isEmpty(et_end.getText().toString())) {
-                    int start = Integer.valueOf(et_start.getText().toString());
-                    int end = Integer.valueOf(et_end.getText().toString());
+                if (!TextUtils.isEmpty(etStart.getText().toString()) &&
+                        !TextUtils.isEmpty(etEnd.getText().toString())) {
+                    int start = Integer.valueOf(etStart.getText().toString());
+                    int end = Integer.valueOf(etEnd.getText().toString());
                     boolean success = table.removeRows(start, end);
                     if (success)
                         unselectCell();
@@ -319,13 +322,39 @@ public class MainActivity extends AppCompatActivity {
         (findViewById(R.id.tv_remove_lines)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!TextUtils.isEmpty(et_start.getText().toString()) &&
-                        !TextUtils.isEmpty(et_end.getText().toString())) {
-                    int start = Integer.valueOf(et_start.getText().toString());
-                    int end = Integer.valueOf(et_end.getText().toString());
+                if (!TextUtils.isEmpty(etStart.getText().toString()) &&
+                        !TextUtils.isEmpty(etEnd.getText().toString())) {
+                    int start = Integer.valueOf(etStart.getText().toString());
+                    int end = Integer.valueOf(etEnd.getText().toString());
                     boolean success = table.removeLines(start, end);
                     if (success)
                         unselectCell();
+                }
+            }
+        });
+
+
+        // merge/unmerge
+        tvMerge = (TextView) findViewById(R.id.tv_merge);
+        tvMerge.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != curMergeInfo) { // unmerge
+                    table.unmergeCells(curMergeInfo);
+                    unselectMergeCell();
+                } else { // merge
+                    if (!TextUtils.isEmpty(etStartRow.getText()) &&
+                            !TextUtils.isEmpty(etStartLine.getText()) &&
+                            !TextUtils.isEmpty(etEndRow.getText()) &&
+                            !TextUtils.isEmpty(etEndLine.getText())) {
+                        EasyTableView.MergeInfo mergeInfo = new EasyTableView.MergeInfo();
+                        mergeInfo.startRow = Integer.valueOf(etStartRow.getText().toString());
+                        mergeInfo.startLine = Integer.valueOf(etStartLine.getText().toString());
+                        mergeInfo.endRow = Integer.valueOf(etEndRow.getText().toString());
+                        mergeInfo.endLine = Integer.valueOf(etEndLine.getText().toString());
+                        table.mergeCells(mergeInfo);
+                        unselectMergeCell();
+                    }
                 }
             }
         });
@@ -347,66 +376,97 @@ public class MainActivity extends AppCompatActivity {
         btnDone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (null != curCellInfo) {
-                    boolean tableChanged = false;
-                    int rows = MainActivity.this.rows;
-                    int lines = MainActivity.this.lines;
-                    int corner = table.getOutStrokeCorner();
-                    if (!TextUtils.isEmpty(etRows.getText())) {
-                        rows = Integer.valueOf(etRows.getText().toString());
-                        tableChanged = true;
-                    }
-                    if (!TextUtils.isEmpty(etLines.getText())) {
-                        lines = Integer.valueOf(etLines.getText().toString());
-                        tableChanged = true;
-                    }
+                boolean tableChanged = false;
+                int rows = MainActivity.this.rows;
+                int lines = MainActivity.this.lines;
+                if (!TextUtils.isEmpty(etRows.getText())) {
+                    rows = Integer.valueOf(etRows.getText().toString());
+                    tableChanged = true;
+                }
+                if (!TextUtils.isEmpty(etLines.getText())) {
+                    lines = Integer.valueOf(etLines.getText().toString());
+                    tableChanged = true;
+                }
 
-                    if (tableChanged) {
-                        // table
-                        initData(rows, lines);
-                        table.setData(rows, lines, cellInfoList);
+                if (tableChanged) {
+                    // table
+                    initData(rows, lines);
+                    table.setData(rows, lines, cellInfoList);
+                    table.reset();
+
+                    etText.setText("");
+                    etRows.setText("");
+                    etLines.setText("");
+                    etCorner.setText("");
+
+                    unselectCell();
+                } else if (null != curCellInfo) {
+                    // corner
+                    if (!TextUtils.isEmpty(etCorner.getText())) {
+                        int corner = Integer.valueOf(etCorner.getText().toString());
+                        table.setOutStrokeCorner(corner);
                         table.reset();
-
-                        et_text.setText("");
-                        etRows.setText("");
-                        etLines.setText("");
-                        etCorner.setText("");
-
-                        unselectCell();
-                    } else {
-                        // corner
-                        if (!TextUtils.isEmpty(etCorner.getText())) {
-                            corner = Integer.valueOf(etCorner.getText().toString());
-                            table.setOutStrokeCorner(corner);
-                            table.reset();
-                        }
-
-                        // texts
-                        if (!TextUtils.isEmpty(et_text.getText())) {
-                            String texts = et_text.getText().toString();
-                            curCellInfo.texts = texts.split(";");
-                        }
-
-                        if (!TextUtils.isEmpty(etSize.getText())) {
-                            int size = Integer.valueOf(etSize.getText().toString());
-                            switch (curSelect) {
-                                case SELECT_TEXTS:
-                                    curCellInfo.textSize = spToPx(size);
-                                    table.updateData(curCellInfo);
-                                    break;
-                                case SELECT_STROKE:
-                                    table.setStrokeSize(dipToPx(size));
-                                    table.reset();
-                                    break;
-                                case SELECT_OUT_STROKE:
-                                    table.setOutStrokeSize(dipToPx(size));
-                                    table.reset();
-                                    break;
-                            }
-                        }
-
-                        table.updateData(curCellInfo);
                     }
+
+                    // texts
+                    if (!TextUtils.isEmpty(etText.getText())) {
+                        String texts = etText.getText().toString();
+                        curCellInfo.texts = texts.split(";");
+                    }
+
+                    if (!TextUtils.isEmpty(etSize.getText())) {
+                        int size = Integer.valueOf(etSize.getText().toString());
+                        switch (curSelect) {
+                            case SELECT_TEXTS:
+                                curCellInfo.textSize = spToPx(size);
+                                table.updateData(curCellInfo);
+                                break;
+                            case SELECT_STROKE:
+                                table.setStrokeSize(dipToPx(size));
+                                table.reset();
+                                break;
+                            case SELECT_OUT_STROKE:
+                                table.setOutStrokeSize(dipToPx(size));
+                                table.reset();
+                                break;
+                        }
+                    }
+
+                    table.updateData(curCellInfo);
+
+                } else if (null != curMergeInfo) {
+                    // corner
+                    if (!TextUtils.isEmpty(etCorner.getText())) {
+                        int corner = Integer.valueOf(etCorner.getText().toString());
+                        table.setOutStrokeCorner(corner);
+                        table.reset();
+                    }
+
+                    // texts
+                    if (!TextUtils.isEmpty(etText.getText())) {
+                        String texts = etText.getText().toString();
+                        curMergeInfo.texts = texts.split(";");
+                    }
+
+                    if (!TextUtils.isEmpty(etSize.getText())) {
+                        int size = Integer.valueOf(etSize.getText().toString());
+                        switch (curSelect) {
+                            case SELECT_TEXTS:
+                                curMergeInfo.textSize = spToPx(size);
+                                table.updateMergeData(curMergeInfo);
+                                break;
+                            case SELECT_STROKE:
+                                table.setStrokeSize(dipToPx(size));
+                                table.reset();
+                                break;
+                            case SELECT_OUT_STROKE:
+                                table.setOutStrokeSize(dipToPx(size));
+                                table.reset();
+                                break;
+                        }
+                    }
+
+                    table.updateMergeData(curMergeInfo);
                 }
             }
         });
@@ -417,6 +477,8 @@ public class MainActivity extends AppCompatActivity {
         layoutSettings.setVisibility(View.VISIBLE);
         int pWidth = (int) ((1.0f * cellInfo.width / w) * 100);
         int pHeight = (int) ((1.0f * cellInfo.height / h) * 100);
+        sbWidth.setEnabled(true);
+        sbHeight.setEnabled(true);
         sbWidth.setProgress(pWidth);
         sbHeight.setProgress(pHeight);
         tvWidthPercent.setText(pWidth + "%");
@@ -431,15 +493,41 @@ public class MainActivity extends AppCompatActivity {
         removeSelectRect();
     }
 
+    private void selectMergeCell(EasyTableView.MergeInfo mergeInfo) {
+        curMergeInfo = mergeInfo;
+        layoutSettings.setVisibility(View.VISIBLE);
+        sbWidth.setEnabled(false);
+        sbHeight.setEnabled(false);
+        removeSelectRect();
+        addSelectRect();
+    }
+
+    private void unselectMergeCell() {
+        curMergeInfo = null;
+        layoutSettings.setVisibility(View.GONE);
+        sbWidth.setEnabled(true);
+        sbHeight.setEnabled(true);
+        removeSelectRect();
+    }
+
     // 添加选中框
     private void addSelectRect() {
         StringBuilder ps = new StringBuilder();
-        ps.append("m").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY()).append(" ");
-        ps.append("l").append(curCellInfo.getStartX() + curCellInfo.width).append(",").append(curCellInfo.getStartY()).append(" ");
-        ps.append("l").append(curCellInfo.getStartX() + curCellInfo.width).append(",").append(curCellInfo.getStartY() + curCellInfo.height).append(" ");
-        ps.append("l").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY() + curCellInfo.height).append(" ");
-        ps.append("l").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY());
-        addEpv(ps.toString());
+        if (null != curCellInfo) {
+            ps.append("m").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY()).append(" ");
+            ps.append("l").append(curCellInfo.getStartX() + curCellInfo.width).append(",").append(curCellInfo.getStartY()).append(" ");
+            ps.append("l").append(curCellInfo.getStartX() + curCellInfo.width).append(",").append(curCellInfo.getStartY() + curCellInfo.height).append(" ");
+            ps.append("l").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY() + curCellInfo.height).append(" ");
+            ps.append("l").append(curCellInfo.getStartX()).append(",").append(curCellInfo.getStartY());
+            addEpv(ps.toString());
+        } else if (null != curMergeInfo) {
+            ps.append("m").append(curMergeInfo.getStartX()).append(",").append(curMergeInfo.getStartY()).append(" ");
+            ps.append("l").append(curMergeInfo.getStartX() + curMergeInfo.getWidth()).append(",").append(curMergeInfo.getStartY()).append(" ");
+            ps.append("l").append(curMergeInfo.getStartX() + curMergeInfo.getWidth()).append(",").append(curMergeInfo.getStartY() + curMergeInfo.getHeight()).append(" ");
+            ps.append("l").append(curMergeInfo.getStartX()).append(",").append(curMergeInfo.getStartY() + curMergeInfo.getHeight()).append(" ");
+            ps.append("l").append(curMergeInfo.getStartX()).append(",").append(curMergeInfo.getStartY());
+            addEpv(ps.toString());
+        }
     }
 
     private void addEpv(String pathString) {
@@ -474,12 +562,22 @@ public class MainActivity extends AppCompatActivity {
 
         switch (curSelect) {
             case SELECT_TEXTS:
-                curCellInfo.textColor = colorDrawable.getColor();
-                table.updateData(curCellInfo);
+                if (null != curCellInfo) {
+                    curCellInfo.textColor = colorDrawable.getColor();
+                    table.updateData(curCellInfo);
+                } else if (null != curMergeInfo) {
+                    curMergeInfo.textColor = colorDrawable.getColor();
+                    table.updateMergeData(curMergeInfo);
+                }
                 break;
             case SELECT_BG:
-                curCellInfo.bgColor = colorDrawable.getColor();
-                table.updateData(curCellInfo);
+                if (null != curCellInfo) {
+                    curCellInfo.bgColor = colorDrawable.getColor();
+                    table.updateData(curCellInfo);
+                } else if (null != curMergeInfo) {
+                    curMergeInfo.bgColor = colorDrawable.getColor();
+                    table.updateMergeData(curMergeInfo);
+                }
                 break;
             case SELECT_STROKE:
                 table.setStrokeColor(colorDrawable.getColor());

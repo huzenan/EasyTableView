@@ -45,7 +45,7 @@ public class EasyTableView extends View {
     // 边框粗细，默认为1dp
     private int outStrokeSize;
     // 边框圆角的宽度，默认为5dp
-    private int outStrokeCorner;
+    private float outStrokeCorner;
     // 模式，分为MODE_NORMAL、MODE_FIX_WIDTH、MODE_FIX_HEIGHT和MODE_FIX_WIDTH_HEIGHT，默认为MODE_NORMAL
     private int mode;
 
@@ -271,10 +271,9 @@ public class EasyTableView extends View {
             float height = 0.0f;
             for (int r = mergeInfo.startRow; r <= mergeInfo.endRow; r++) {
                 width = 0.0f;
-                for (int l = mergeInfo.startLine; l <= mergeInfo.endLine; l++) {
-                    cellArr[r][l].mergeInfo = mergeInfo;
+                for (int l = mergeInfo.startLine; l <= mergeInfo.endLine; l++)
                     width += cellArr[r][l].width; // 为了方便，不另外循环计算了
-                }
+
                 height += cellArr[r][0].height;
             }
             mergeInfo.width = width;
@@ -292,7 +291,7 @@ public class EasyTableView extends View {
     private void drawHeaderVH(Canvas canvas) {
         // 至少2x2的表格才绘制双向表头
         if (cellArr.length > 1 && cellArr[0].length > 1) {
-            int twiceCorner = outStrokeCorner * 2;
+            float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerHVColor);
             tRectF.left = bgRectF.left;
             tRectF.top = bgRectF.top;
@@ -314,7 +313,7 @@ public class EasyTableView extends View {
     private void drawHeaderH(Canvas canvas) {
         // 至少2行才绘制
         if (cellArr.length > 1) {
-            int twiceCorner = outStrokeCorner * 2;
+            float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerHColor);
             tRectF.left = bgRectF.right - twiceCorner;
             tRectF.top = bgRectF.top;
@@ -336,7 +335,7 @@ public class EasyTableView extends View {
     private void drawHeaderV(Canvas canvas) {
         // 至少2列才绘制
         if (cellArr[0].length > 1) {
-            int twiceCorner = outStrokeCorner * 2;
+            float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerVColor);
             tRectF.left = bgRectF.left;
             tRectF.top = bgRectF.bottom - twiceCorner;
@@ -366,111 +365,50 @@ public class EasyTableView extends View {
                         tRectF.right = cellArr[r][l].startX + cellArr[r][l].width;
                         tRectF.bottom = cellArr[r][l].startY + cellArr[r][l].height;
                         this.paint.setColor(cellArr[r][l].bgColor);
+
                         tPath.reset();
-                        if (rows == 1 && lines == 1) {
-                            // 只有一格
-                            tPath.moveTo(tRectF.left - outStrokeCorner, tRectF.top);
+
+                        tPath.moveTo(tRectF.left - outStrokeCorner, tRectF.top);
+
+                        if (r == 0 && l == 0) {
                             addLeftTopCornerPath();
-                            tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
-                            addLeftBottomCornerPath();
-                            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
-                            addRightBottomCornerPath();
-                            tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
-                            addRightTopCornerPath();
-                            tPath.close();
-                            canvas.drawPath(tPath, paint);
-                        } else if (rows == 1 && lines > 1) {
-                            // 只有一行
-                            if (l == 0) {
-                                // 最左侧
-                                tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
-                                addLeftTopCornerPath();
-                                tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
-                                addLeftBottomCornerPath();
-                                tPath.lineTo(tRectF.right, tRectF.bottom);
-                                tPath.lineTo(tRectF.right, tRectF.top);
-                                tPath.close();
-                                canvas.drawPath(tPath, paint);
-                            } else if (l == lines - 1) {
-                                // 最右侧
-                                tPath.moveTo(tRectF.left, tRectF.top);
-                                tPath.lineTo(tRectF.left, tRectF.bottom);
-                                tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
-                                addRightBottomCornerPath();
-                                tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
-                                addRightTopCornerPath();
-                                tPath.close();
-                                canvas.drawPath(tPath, paint);
-                            } else {
-                                // 中间
-                                canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
-                            }
-                        } else if (rows > 1 && lines == 1) {
-                            // 只有一列
-                            if (r == 0) {
-                                // 最上侧
-                                tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
-                                addLeftTopCornerPath();
-                                tPath.lineTo(tRectF.left, tRectF.bottom);
-                                tPath.lineTo(tRectF.right, tRectF.bottom);
-                                tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
-                                addRightTopCornerPath();
-                                tPath.close();
-                                canvas.drawPath(tPath, paint);
-                            } else if (r == rows - 1) {
-                                // 最下侧
-                                tPath.moveTo(tRectF.left, tRectF.top);
-                                tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
-                                addLeftBottomCornerPath();
-                                tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
-                                addRightBottomCornerPath();
-                                tPath.lineTo(tRectF.right, tRectF.top);
-                                tPath.close();
-                                canvas.drawPath(tPath, paint);
-                            } else {
-                                // 中间
-                                canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
-                            }
-                        } else if (r == 0 && l == 0) {
-                            // 左上角
-                            tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
-                            addLeftTopCornerPath();
-                            tPath.lineTo(tRectF.left, tRectF.bottom);
-                            tPath.lineTo(tRectF.right, tRectF.bottom);
-                            tPath.lineTo(tRectF.right, tRectF.top);
-                            tPath.close();
-                            canvas.drawPath(tPath, paint);
-                        } else if (r == 0 && l == lines - 1) {
-                            // 右上角
-                            tPath.moveTo(tRectF.left, tRectF.top);
-                            tPath.lineTo(tRectF.left, tRectF.bottom);
-                            tPath.lineTo(tRectF.right, tRectF.bottom);
-                            tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
-                            addRightTopCornerPath();
-                            tPath.close();
-                            canvas.drawPath(tPath, paint);
-                        } else if (r == rows - 1 && l == 0) {
-                            // 左下角
-                            tPath.moveTo(tRectF.left, tRectF.top);
-                            tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
-                            addLeftBottomCornerPath();
-                            tPath.lineTo(tRectF.right, tRectF.bottom);
-                            tPath.lineTo(tRectF.right, tRectF.top);
-                            tPath.close();
-                            canvas.drawPath(tPath, paint);
-                        } else if (r == rows - 1 && l == lines - 1) {
-                            // 右下角
-                            tPath.moveTo(tRectF.left, tRectF.top);
-                            tPath.lineTo(tRectF.left, tRectF.bottom);
-                            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
-                            addRightBottomCornerPath();
-                            tPath.lineTo(tRectF.right, tRectF.top);
-                            tPath.close();
-                            canvas.drawPath(tPath, paint);
                         } else {
-                            // 中间
-                            canvas.drawRect(tRectF.left, tRectF.top, tRectF.right, tRectF.bottom, paint);
+                            tPath.lineTo(tRectF.left, tRectF.top);
+                            tPath.lineTo(tRectF.left, tRectF.top + outStrokeCorner);
                         }
+
+                        tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+
+                        if (r == rows - 1 && l == 0) {
+                            addLeftBottomCornerPath();
+                        } else {
+                            tPath.lineTo(tRectF.left, tRectF.bottom);
+                            tPath.lineTo(tRectF.left + outStrokeCorner, tRectF.bottom);
+                        }
+
+                        tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+
+                        if (r == rows - 1 && l == lines - 1) {
+                            addRightBottomCornerPath();
+                        } else {
+                            tPath.lineTo(tRectF.right, tRectF.bottom);
+                            tPath.lineTo(tRectF.right, tRectF.bottom - outStrokeCorner);
+                        }
+
+                        tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+
+                        if (r == 0 && l == lines - 1) {
+                            addRightTopCornerPath();
+                        } else {
+                            tPath.lineTo(tRectF.right, tRectF.top);
+                            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.top);
+                        }
+
+                        tPath.lineTo(tRectF.left - outStrokeCorner, tRectF.top);
+
+                        tPath.close();
+
+                        canvas.drawPath(tPath, paint);
                     }
 
                     // 绘制单元格内的字符
@@ -496,24 +434,80 @@ public class EasyTableView extends View {
 
     // 绘制合并的单元格
     private void drawMergedCells(Canvas canvas) {
-        float halfStrokeWidth = strokeSize / 2.0f;
+        float halfStrokeSize = strokeSize / 2.0f;
 
         for (MergeInfo mergeInfo : mergeInfoList) {
-            canvas.save();
-            canvas.clipRect(
-                    mergeInfo.getStartX(),
-                    mergeInfo.getStartY(),
-                    mergeInfo.getStartX() + mergeInfo.width,
-                    mergeInfo.getStartY() + mergeInfo.height);
+            if (mergeInfo.startLine != 0)
+                tRectF.left = mergeInfo.startX + halfStrokeSize;
+            else
+                tRectF.left = bgRectF.left;
+
+            if (mergeInfo.startRow != 0)
+                tRectF.top = mergeInfo.startY + halfStrokeSize;
+            else
+                tRectF.top = bgRectF.top;
+
+            if (mergeInfo.endLine != lines - 1)
+                tRectF.right = mergeInfo.startX + mergeInfo.width - halfStrokeSize;
+            else
+                tRectF.right = bgRectF.right;
+
+            if (mergeInfo.endRow != rows - 1)
+                tRectF.bottom = mergeInfo.startY + mergeInfo.height - halfStrokeSize;
+            else
+                tRectF.bottom = bgRectF.bottom;
 
             paint.setColor(mergeInfo.bgColor);
-            tRectF.left = mergeInfo.startX + halfStrokeWidth;
-            tRectF.top = mergeInfo.startY + halfStrokeWidth;
-            tRectF.right = mergeInfo.startX + mergeInfo.width - halfStrokeWidth;
-            tRectF.bottom = mergeInfo.startY + mergeInfo.height - halfStrokeWidth;
-            canvas.drawRect(tRectF, paint);
+
+            tPath.reset();
+
+            tPath.moveTo(tRectF.left + outStrokeCorner, tRectF.top);
+
+            if (mergeInfo.startRow == 0 && mergeInfo.startLine == 0) {
+                addLeftTopCornerPath();
+            } else {
+                tPath.lineTo(tRectF.left, tRectF.top);
+                tPath.lineTo(tRectF.left, tRectF.top + outStrokeCorner);
+            }
+
+            tPath.lineTo(tRectF.left, tRectF.bottom - outStrokeCorner);
+
+            if (mergeInfo.endRow == rows - 1 && mergeInfo.startLine == 0) {
+                addLeftBottomCornerPath();
+            } else {
+                tPath.lineTo(tRectF.left, tRectF.bottom);
+                tPath.lineTo(tRectF.left + outStrokeCorner, tRectF.bottom);
+            }
+
+            tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.bottom);
+
+            if (mergeInfo.endRow == rows - 1 && mergeInfo.endLine == lines - 1) {
+                addRightBottomCornerPath();
+            } else {
+                tPath.lineTo(tRectF.right, tRectF.bottom);
+                tPath.lineTo(tRectF.right, tRectF.bottom - outStrokeCorner);
+            }
+
+            tPath.lineTo(tRectF.right, tRectF.top + outStrokeCorner);
+
+            if (mergeInfo.startRow == 0 && mergeInfo.endLine == lines - 1) {
+                addRightTopCornerPath();
+            } else {
+                tPath.lineTo(tRectF.right, tRectF.top);
+                tPath.lineTo(tRectF.right - outStrokeCorner, tRectF.top);
+            }
+
+            tPath.lineTo(tRectF.left + outStrokeCorner, tRectF.top);
+
+            tPath.close();
+
+            canvas.drawPath(tPath, paint);
+
 
             // 绘制合并后的单元格内的字符
+            canvas.save();
+            canvas.clipRect(tRectF);
+
             if (null != mergeInfo.texts && mergeInfo.texts.length > 0) {
                 int textRows = mergeInfo.texts.length;
                 float h = mergeInfo.height;
@@ -823,7 +817,6 @@ public class EasyTableView extends View {
             }
         }
 
-        // 刷新
         requestLayout();
         invalidate();
     }
@@ -875,6 +868,30 @@ public class EasyTableView extends View {
                 heightArr[cellInfo.row] = h;
                 fillTextAttrs(cellInfo);
             }
+        }
+
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * 更新合并的单元格数据
+     *
+     * @param mergeInfos 需要更新的合并数据项集合
+     */
+    public void updateMergeData(MergeInfo... mergeInfos) {
+        updateMergeData(Arrays.asList(mergeInfos));
+    }
+
+    /**
+     * 更新合并的单元格数据
+     *
+     * @param mergeInfoList 需要更新的合并数据项集合
+     */
+    public void updateMergeData(List<MergeInfo> mergeInfoList) {
+        for (MergeInfo mergeInfo : mergeInfoList) {
+            fillMergeTextAttrs(mergeInfo);
+            this.mergeInfoList.add(mergeInfo);
         }
 
         requestLayout();
@@ -1113,12 +1130,42 @@ public class EasyTableView extends View {
         }
     }
 
+    // 填充合并单元格texts的属性，包括textColors和textSizes
+    private void fillMergeTextAttrs(MergeInfo mergeInfo) {
+        if (null != mergeInfo.texts && mergeInfo.texts.length > 0) {
+            if (mergeInfo.textColor == 0 && null == mergeInfo.textColors) // textColor和textColors都没有设置
+                mergeInfo.textColor = Color.BLACK;
+            if (mergeInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
+                mergeInfo.textColors = new int[mergeInfo.texts.length];
+                for (int t = 0; t < mergeInfo.texts.length; t++)
+                    mergeInfo.textColors[t] = mergeInfo.textColor;
+            }
+
+            if (mergeInfo.textSize == -1 && null == mergeInfo.textSizes) // textSize和textSizes都没有设置
+                mergeInfo.textSize = spToPx(14);
+            if (mergeInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
+                mergeInfo.textSizes = new int[mergeInfo.texts.length];
+                for (int t = 0; t < mergeInfo.texts.length; t++)
+                    mergeInfo.textSizes[t] = mergeInfo.textSize;
+            }
+        }
+    }
+
+    /**
+     * 合并单元格
+     *
+     * @param mergeInfos 合并单元格数据集
+     */
+    public void mergeCells(MergeInfo... mergeInfos) {
+        mergeCells(Arrays.asList(mergeInfos));
+    }
+
     /**
      * 合并单元格
      *
      * @param mergeInfoList 合并单元格数据集
      */
-    public void mergeCells(ArrayList<MergeInfo> mergeInfoList) {
+    public void mergeCells(List<MergeInfo> mergeInfoList) {
         if (null == mergeInfoList || mergeInfoList.size() == 0)
             return;
 
@@ -1127,29 +1174,40 @@ public class EasyTableView extends View {
         for (int i = 0; i < size; i++) {
             MergeInfo mergeInfo = mergeInfoList.get(i);
 
-            if (mergeInfo.bgColor == 0)
-                mergeInfo.bgColor = cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor;
-
-            if (null != mergeInfo.texts && mergeInfo.texts.length > 0) {
-                if (mergeInfo.textColor == 0 && null == mergeInfo.textColors) // textColor和textColors都没有设置
-                    mergeInfo.textColor = Color.BLACK;
-                if (mergeInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
-                    mergeInfo.textColors = new int[mergeInfo.texts.length];
-                    for (int t = 0; t < mergeInfo.texts.length; t++)
-                        mergeInfo.textColors[t] = mergeInfo.textColor;
-                }
-
-                if (mergeInfo.textSize == -1 && null == mergeInfo.textSizes) // textSize和textSizes都没有设置
-                    mergeInfo.textSize = spToPx(14);
-                if (mergeInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
-                    mergeInfo.textSizes = new int[mergeInfo.texts.length];
-                    for (int t = 0; t < mergeInfo.texts.length; t++)
-                        mergeInfo.textSizes[t] = mergeInfo.textSize;
-                }
+            if (mergeInfo.bgColor == 0) {
+                if (cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor == 0)
+                    mergeInfo.bgColor = bgColor;
+                else
+                    mergeInfo.bgColor = cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor;
             }
+
+            fillMergeTextAttrs(mergeInfo);
         }
 
-        // 刷新
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * 取消合并单元格
+     *
+     * @param mergeInfos 要取消合并的单元格数据集
+     */
+    public void unmergeCells(MergeInfo... mergeInfos) {
+        unmergeCells(Arrays.asList(mergeInfos));
+    }
+
+    /**
+     * 取消合并单元格
+     *
+     * @param mergeInfoList 要取消合并的单元格数据集
+     */
+    public void unmergeCells(List<MergeInfo> mergeInfoList) {
+        if (null == mergeInfoList || mergeInfoList.size() == 0)
+            return;
+
+        this.mergeInfoList.removeAll(mergeInfoList);
+
         requestLayout();
         invalidate();
     }
@@ -1261,7 +1319,7 @@ public class EasyTableView extends View {
      *
      * @return 圆角半径，单位px
      */
-    public int getOutStrokeCorner() {
+    public float getOutStrokeCorner() {
         return outStrokeCorner;
     }
 
@@ -1270,7 +1328,7 @@ public class EasyTableView extends View {
      *
      * @param outStrokeCorner 圆角半径，小于0时，默认设置为四周单元格的长或宽的较小值，单位px
      */
-    public void setOutStrokeCorner(int outStrokeCorner) {
+    public void setOutStrokeCorner(float outStrokeCorner) {
         float min = cellArr[0][0].width;
         if (min > cellArr[0][0].height)
             min = cellArr[0][0].height;
@@ -1291,7 +1349,7 @@ public class EasyTableView extends View {
             min = cellArr[rows - 1][lines - 1].height;
 
         if (outStrokeCorner < 0 || outStrokeCorner > min)
-            this.outStrokeCorner = (int) (min + 0.5f);
+            this.outStrokeCorner = min;
         else
             this.outStrokeCorner = outStrokeCorner;
     }
@@ -1384,12 +1442,6 @@ public class EasyTableView extends View {
          * 显示的字符
          */
         public String[] texts = null;
-        /**
-         * 在进行合并单元格操作时，会将此单元格与相应的MergeInfo绑定，取消合并时置为空；
-         * 同一单元格被多次合并时，将绑定为最后一次合并的MergeInfo，不建议这样做；
-         * 当mergeInfo不为空时，该单元格的信息将使用mergeInfo的信息
-         */
-        public MergeInfo mergeInfo = null;
 
         public CellInfo() {
         }
@@ -1493,13 +1545,43 @@ public class EasyTableView extends View {
          */
         public int textSize = -1;
         /**
-         * 字体大小集，单位px，，设置时必须与texts长度一致
+         * 字体大小集，单位px，设置时必须与texts长度一致
          */
         public int[] textSizes = null;
         /**
          * 合并后的单元格显示的字符，单元格合并后，不设置时，只显示左上角的单元格的字符
          */
         public String[] texts;
+
+        public MergeInfo() {
+        }
+
+        public MergeInfo(
+                int type,
+                Object tag,
+                int startRow,
+                int startLine,
+                int endRow,
+                int endLine,
+                int bgColor,
+                int textColor,
+                int[] textColors,
+                int textSize,
+                int[] textSizes,
+                String[] texts) {
+            this.type = type;
+            this.tag = tag;
+            this.startRow = startRow;
+            this.startLine = startLine;
+            this.endRow = endRow;
+            this.endLine = endLine;
+            this.bgColor = bgColor;
+            this.textColor = textColor;
+            this.textColors = textColors;
+            this.textSize = textSize;
+            this.textSizes = textSizes;
+            this.texts = texts;
+        }
 
         public float getStartX() {
             return startX;

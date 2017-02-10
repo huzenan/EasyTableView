@@ -301,6 +301,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="reset"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
                 android:text="rows"
                 />
 
@@ -316,7 +323,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
+                android:layout_marginLeft="10dp"
                 android:text="lines"
                 />
 
@@ -332,7 +339,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
+                android:layout_marginLeft="10dp"
                 android:text="corner"
                 />
 
@@ -520,6 +527,79 @@
                 android:paddingRight="8dp"
                 android:layout_marginLeft="10dp"
                 android:text="lines"
+                android:textColor="@color/white"
+                />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="merge"
+                />
+
+            <EditText
+                android:id="@+id/et_start_row"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:hint="start r"
+                android:textColorHint="@color/gray"
+                />
+
+            <EditText
+                android:id="@+id/et_start_line"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:hint="start l"
+                android:textColorHint="@color/gray"
+                />
+
+            <EditText
+                android:id="@+id/et_end_row"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:hint="end r"
+                android:textColorHint="@color/gray"
+                />
+
+            <EditText
+                android:id="@+id/et_end_line"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:inputType="number"
+                android:textSize="14sp"
+                android:hint="end l"
+                android:textColorHint="@color/gray"
+                />
+
+            <TextView
+                android:id="@+id/tv_merge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@color/green_blue"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:layout_marginLeft="5dp"
+                android:text="MERGE"
                 android:textColor="@color/white"
                 />
         </LinearLayout>
