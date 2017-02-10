@@ -44,8 +44,9 @@ public class MainActivity extends AppCompatActivity {
     private EditText etEndRow;
     private EditText etEndLine;
     private TextView tvMerge;
-    private Button btnClear;
     private Button btnDone;
+    private Button btnClear;
+    private Button btnSet;
 
     private int rows;
     private int lines;
@@ -361,6 +362,16 @@ public class MainActivity extends AppCompatActivity {
 
 
         // btn
+        btnDone = (Button) findViewById(R.id.btn_done);
+        btnDone.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (null != curCellInfo)
+                    unselectCell();
+                else if (null != curMergeInfo)
+                    unselectMergeCell();
+            }
+        });
         btnClear = (Button) findViewById(R.id.btn_clear);
         btnClear.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -372,8 +383,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        btnDone = (Button) findViewById(R.id.btn_done);
-        btnDone.setOnClickListener(new View.OnClickListener() {
+        btnSet = (Button) findViewById(R.id.btn_set);
+        btnSet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 boolean tableChanged = false;
