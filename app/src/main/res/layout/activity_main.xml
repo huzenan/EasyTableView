@@ -37,6 +37,7 @@
         android:alpha="0.9"
         android:background="#ffffff"
         android:orientation="vertical"
+        android:visibility="gone"
         >
 
         <LinearLayout
@@ -302,6 +303,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="reset"
+                android:textStyle="bold"
                 />
 
             <TextView
@@ -365,6 +367,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="add"
+                android:textStyle="bold"
                 />
 
             <TextView
@@ -397,6 +400,8 @@
                 android:layout_marginLeft="10dp"
                 android:inputType="number"
                 android:textSize="14sp"
+                android:hint="dp"
+                android:textColorHint="@color/gray"
                 />
 
             <TextView
@@ -468,6 +473,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="remove"
+                android:textStyle="bold"
                 />
 
             <TextView
@@ -543,6 +549,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="merge"
+                android:textStyle="bold"
                 />
 
             <EditText

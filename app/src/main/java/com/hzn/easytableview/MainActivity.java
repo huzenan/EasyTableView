@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!TextUtils.isEmpty(etNewSize.getText().toString()))
                         newSize = Integer.valueOf(etNewSize.getText().toString());
 
-                    table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_TOP);
+                    table.addNewRows(curCellInfo.row, newRowsLines, dipToPx(newSize), EasyTableView.ADD_ROWS_TOP);
                     unselectCell();
                 }
             }
@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!TextUtils.isEmpty(etNewSize.getText().toString()))
                         newSize = Integer.valueOf(etNewSize.getText().toString());
 
-                    table.addNewRows(curCellInfo.row, newRowsLines, newSize, EasyTableView.ADD_ROWS_BOTTOM);
+                    table.addNewRows(curCellInfo.row, newRowsLines, dipToPx(newSize), EasyTableView.ADD_ROWS_BOTTOM);
                     unselectCell();
                 }
             }
@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!TextUtils.isEmpty(etNewSize.getText().toString()))
                         newSize = Integer.valueOf(etNewSize.getText().toString());
 
-                    table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_LEFT);
+                    table.addNewLines(curCellInfo.line, newRowsLines, dipToPx(newSize), EasyTableView.ADD_LINES_LEFT);
                     unselectCell();
                 }
             }
@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
                     if (!TextUtils.isEmpty(etNewSize.getText().toString()))
                         newSize = Integer.valueOf(etNewSize.getText().toString());
 
-                    table.addNewLines(curCellInfo.line, newRowsLines, newSize, EasyTableView.ADD_LINES_RIGHT);
+                    table.addNewLines(curCellInfo.line, newRowsLines, dipToPx(newSize), EasyTableView.ADD_LINES_RIGHT);
                     unselectCell();
                 }
             }
@@ -406,6 +406,9 @@ public class MainActivity extends AppCompatActivity {
                         int corner = Integer.valueOf(etCorner.getText().toString());
                         table.setOutStrokeCorner(corner);
                         table.reset();
+
+                        removeSelectRect();
+                        addSelectRect();
                     }
 
                     // texts
@@ -440,6 +443,9 @@ public class MainActivity extends AppCompatActivity {
                         int corner = Integer.valueOf(etCorner.getText().toString());
                         table.setOutStrokeCorner(corner);
                         table.reset();
+
+                        removeSelectRect();
+                        addSelectRect();
                     }
 
                     // texts

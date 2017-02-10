@@ -32,9 +32,9 @@ public class EasyTableView extends View {
     private int bgColor;
     // 双向表头颜色，至少2x2的表格才绘制，默认为Color.LTGRAY
     private int headerHVColor;
-    // 横向表头颜色，便于统一设置；至少2行才绘制，默认为Color.LTGRAY
+    // 横向表头颜色，便于统一设置；至少2行2列才绘制，默认为Color.LTGRAY
     private int headerHColor;
-    // 竖向表头颜色，便于统一设置；至少2列才绘制，默认为Color.LTGRAY
+    // 竖向表头颜色，便于统一设置；至少2行2列才绘制，默认为Color.LTGRAY
     private int headerVColor;
     // 线段颜色，默认为Color.GRAY
     private int strokeColor;
@@ -311,8 +311,8 @@ public class EasyTableView extends View {
 
     // 绘制横向表头
     private void drawHeaderH(Canvas canvas) {
-        // 至少2行才绘制
-        if (cellArr.length > 1) {
+        // 至少2行2列才绘制
+        if (cellArr.length > 1 && cellArr[0].length > 1) {
             float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerHColor);
             tRectF.left = bgRectF.right - twiceCorner;
@@ -333,8 +333,8 @@ public class EasyTableView extends View {
 
     // 绘制竖向表头
     private void drawHeaderV(Canvas canvas) {
-        // 至少2列才绘制
-        if (cellArr[0].length > 1) {
+        // 至少2行2列才绘制
+        if (cellArr.length > 1 && cellArr[0].length > 1) {
             float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerVColor);
             tRectF.left = bgRectF.left;
@@ -836,7 +836,7 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 更新表格数据，若设置了width或height，将强制更新单元格大小
+     * 更新表格数据，若设置了width或height，将强制更新单元格大小，大小以某行某列最后一个输入数据为准
      *
      * @param cellInfos 需要更新的数据项
      */
@@ -845,7 +845,7 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 更新表格数据，若设置了width或height，将强制更新单元格大小
+     * 更新表格数据，若设置了width或height，将强制更新单元格大小，大小以某行某列最后一个输入数据为准
      *
      * @param cellInfoList 需要更新的数据项集合
      */
@@ -857,11 +857,15 @@ public class EasyTableView extends View {
                 cellArr[cellInfo.row][cellInfo.line] = cellInfo;
 
                 w = cellInfo.width;
-                if ((cellInfo.line == 0 || cellInfo.line == lines - 1) && cellInfo.width < outStrokeCorner)
+                if (cellArr[0].length == 1 && cellInfo.width < 2.0f * outStrokeCorner)
+                    w = 2.0f * outStrokeCorner;
+                else if ((cellInfo.line == 0 || cellInfo.line == lines - 1) && cellInfo.width < outStrokeCorner)
                     w = outStrokeCorner;
 
                 h = cellInfo.height;
-                if ((cellInfo.row == 0 || cellInfo.row == rows - 1) && cellInfo.height < outStrokeCorner)
+                if (cellArr.length == 1 && cellInfo.height < 2.0f * outStrokeCorner)
+                    h = 2.0f * outStrokeCorner;
+                else if ((cellInfo.row == 0 || cellInfo.row == rows - 1) && cellInfo.height < outStrokeCorner)
                     h = outStrokeCorner;
 
                 widthArr[cellInfo.line] = w;
@@ -967,7 +971,7 @@ public class EasyTableView extends View {
      */
     public boolean removeRows(int start, int end) {
         int rowsToDel = end - start + 1;
-        if (rowsToDel <= 0 || rowsToDel >= rows)
+        if (rowsToDel <= 0 || rowsToDel >= rows || start < 0 || end >= rows)
             return false;
 
         // 复制数据并删除旧行
@@ -982,6 +986,10 @@ public class EasyTableView extends View {
             tCellArr[r - rowsToDel] = Arrays.copyOf(cellArr[r], lines);
             tHeightArr[r - rowsToDel] = heightArr[r];
         }
+
+        // 只有一行的情况下，行高不能小于2*outStrokeCorner
+        if (newRows == 1 && tHeightArr[0] < 2.0f * outStrokeCorner)
+            tHeightArr[0] = 2.0f * outStrokeCorner;
 
         // 释放原数据
         for (int r = 0; r < rows; r++)
@@ -1071,7 +1079,7 @@ public class EasyTableView extends View {
      */
     public boolean removeLines(int start, int end) {
         int linesToDel = end - start + 1;
-        if (linesToDel <= 0 || linesToDel >= lines)
+        if (linesToDel <= 0 || linesToDel >= lines || start < 0 || end >= lines)
             return false;
 
         // 复制数据并删除旧列
@@ -1091,6 +1099,10 @@ public class EasyTableView extends View {
             tWidthArr[l] = widthArr[l];
         for (int l = end + 1; l < lines; l++)
             tWidthArr[l - linesToDel] = widthArr[l];
+
+        // 只有一列的情况下，列宽不能小于2*outStrokeCorner
+        if (newLines == 1 && tWidthArr[0] < 2.0f * outStrokeCorner)
+            tWidthArr[0] = 2.0f * outStrokeCorner;
 
         // 释放原数据
         for (int r = 0; r < rows; r++)
@@ -1152,7 +1164,7 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 合并单元格
+     * 合并单元格，将自动过滤行列超出范围的数据
      *
      * @param mergeInfos 合并单元格数据集
      */
@@ -1161,7 +1173,7 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 合并单元格
+     * 合并单元格，将自动过滤行列超出范围的数据
      *
      * @param mergeInfoList 合并单元格数据集
      */
@@ -1169,10 +1181,17 @@ public class EasyTableView extends View {
         if (null == mergeInfoList || mergeInfoList.size() == 0)
             return;
 
-        this.mergeInfoList.addAll(mergeInfoList);
+        boolean merged = false;
         int size = mergeInfoList.size();
         for (int i = 0; i < size; i++) {
             MergeInfo mergeInfo = mergeInfoList.get(i);
+
+            // 过滤超出范围的数据
+            if (mergeInfo.startRow > mergeInfo.endRow ||
+                    mergeInfo.startLine > mergeInfo.endLine ||
+                    mergeInfo.startRow < 0 || mergeInfo.startLine < 0 ||
+                    mergeInfo.endRow >= rows || mergeInfo.endLine >= lines)
+                continue;
 
             if (mergeInfo.bgColor == 0) {
                 if (cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor == 0)
@@ -1180,12 +1199,16 @@ public class EasyTableView extends View {
                 else
                     mergeInfo.bgColor = cellArr[mergeInfo.startRow][mergeInfo.startLine].bgColor;
             }
-
             fillMergeTextAttrs(mergeInfo);
+
+            merged = true;
+            this.mergeInfoList.add(mergeInfo);
         }
 
-        requestLayout();
-        invalidate();
+        if (merged) {
+            requestLayout();
+            invalidate();
+        }
     }
 
     /**
