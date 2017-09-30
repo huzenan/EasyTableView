@@ -1,4 +1,4 @@
-package com.hzn.easytableview;
+package com.hzn.library.table;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -14,80 +14,86 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import com.hzn.library.R;
+import com.hzn.library.decoration.EasyDecoration;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * 表格视图，带有横竖向表头，表格体类型可扩展，单个单元格支持多行显示不同(颜色、大小)字符，支持合并、取消合并单元格
+ * Table View, with Horizontal and Vertical HEADER, each cell supports multiline text,
+ * each text line supports different colors and sizes. Cells can be merged or unmerged.
+ * <br/>
  * Created by huzn on 2017/1/12.
  */
 public class EasyTableView extends View {
 
-    // 总的行数，默认为0
+    // total rows, default 0
     private int rows;
-    // 总的列数，默认位0
+    // total lines, default 0
     private int lines;
-    // 背景颜色，默认为Color.WHITE
+    // background color, default Color.WHITE
     private int bgColor;
-    // 双向表头颜色，至少2x2的表格才绘制，默认为Color.LTGRAY
+    // VH Header color, will be drawn at least 2x2, default Color.LTGRAY
     private int headerHVColor;
-    // 横向表头颜色，便于统一设置；至少2行2列才绘制，默认为Color.LTGRAY
+    // Horizontal Header color, will be drawn at least 2x2, default Color.LTGRAY
     private int headerHColor;
-    // 竖向表头颜色，便于统一设置；至少2行2列才绘制，默认为Color.LTGRAY
+    // Vertical Header color, will be drawn at least 2x2, default Color.LTGRAY
     private int headerVColor;
-    // 线段颜色，默认为Color.GRAY
+    // stroke color, default Color.GRAY
     private int strokeColor;
-    // 线段粗细，默认为1dp
+    // stroke size, default 1dp
     private int strokeSize;
-    // 边框颜色，默认为Color.GRAY
+    // outer stroke color, default Color.GRAY
     private int outStrokeColor;
-    // 边框粗细，默认为1dp
+    // outer stroke size, default 1dp
     private int outStrokeSize;
-    // 边框圆角的宽度，默认为5dp
+    // table corner radius, default 5dp
     private float outStrokeCorner;
-    // 模式，分为MODE_NORMAL、MODE_FIX_WIDTH、MODE_FIX_HEIGHT和MODE_FIX_WIDTH_HEIGHT，默认为MODE_NORMAL
+    // table mode，having MODE_NORMAL, MODE_FIX_WIDTH, MODE_FIX_HEIGHT
+    // and MODE_FIX_WIDTH_HEIGHT, default MODE_NORMAL
     private int mode;
 
     /**
-     * 正常模式，表格的宽和高都由表格内容决定
+     * normal mode, WIDTH and HEIGHT of table are both auto fit
      */
     public static final int MODE_NORMAL = 0;
     /**
-     * 固定宽模式，表格的宽由width属性决定，每一列的宽度平均分，高由表格内容决定
+     * fix width, width of each cell is averaged, HEIGHT of table is auto fit
      */
     public static final int MODE_FIX_WIDTH = 1;
     /**
-     * 固定高模式，表格的高由height属性决定，每一行的高度平均分，宽由表格内容决定
+     * fix height, height of each cell is averaged, WIDTH of table is auto fit
      */
     public static final int MODE_FIX_HEIGHT = 2;
     /**
-     * 固定宽高模式，表格的宽、高分别由width、height属性决定，每一行、每一列都平均分
+     * fix width and height, both width and height of each cell is averaged
      */
     public static final int MODE_FIX_WIDTH_HEIGHT = 3;
 
     /**
-     * 在某行顶部添加若干行
+     * add some rows above a row
      */
     public static final int ADD_ROWS_TOP = 0;
     /**
-     * 在某行底部添加若干行
+     * add some rows below a row
      */
     public static final int ADD_ROWS_BOTTOM = 1;
     /**
-     * 在某列左侧添加若干列
+     * add some lines on left of a line
      */
     public static final int ADD_LINES_LEFT = 2;
     /**
-     * 在某列右侧添加若干列
+     * add some lines on right of a line
      */
     public static final int ADD_LINES_RIGHT = 3;
     /**
-     * 添加新行的默认高度
+     * default height of new rows
      */
     public static final float ADD_ROWS_DEFAULT_HEIGHT = 20.0f;
     /**
-     * 添加新列的默认宽度
+     * default width of new lines
      */
     public static final float ADD_LINES_DEFAULT_WIDTH = 20.0f;
 
@@ -99,14 +105,18 @@ public class EasyTableView extends View {
     private RectF tRectF;
     private RectF tCornerRectF;
 
-    // 合并单元格的数据集合
+    // data list of merged cells
     private ArrayList<MergeInfo> mergeInfoList;
-    // 单元格宽度集合
+    // width list of cells
     private float[] widthArr;
-    // 单元格高度集合
+    // height list of cells
     private float[] heightArr;
-    // 单元格数据集合
+    // data list of cells
     private CellInfo[][] cellArr;
+    // bottom decoration, drawing above cells background, and below cells texts
+    private EasyDecoration bottomDecoration;
+    // top decoration, drawing above everything
+    private EasyDecoration topDecoration;
 
     private Object curTouchCell;
     private float downX;
@@ -162,7 +172,7 @@ public class EasyTableView extends View {
         resetTableData();
     }
 
-    // 重置表格数据
+    // reset data list of the table
     private void resetTableData() {
         mergeInfoList = new ArrayList<>();
         widthArr = new float[lines];
@@ -182,7 +192,7 @@ public class EasyTableView extends View {
         int measureMode = MeasureSpec.getMode(widthMeasureSpec);
         int width = MeasureSpec.getSize(widthMeasureSpec);
         if (measureMode != MeasureSpec.EXACTLY) { // wrap_content
-            // 每一列占用的宽度和
+            // sum of each line's width
             width = 0;
             for (int l = 0; l < lines; l++)
                 width = (int) (width + widthArr[l]);
@@ -192,7 +202,7 @@ public class EasyTableView extends View {
         measureMode = MeasureSpec.getMode(heightMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
         if (measureMode != MeasureSpec.EXACTLY) { // wrap_content
-            // 每一行占用的高度和
+            // sum of each line's height
             height = 0;
             for (int r = 0; r < rows; r++)
                 height = (int) (height + heightArr[r]);
@@ -209,29 +219,35 @@ public class EasyTableView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        // 初始化坐标等数据
+        // init data such as coordinate
         initData();
-        // 绘制背景
+        // draw background
         drawBg(canvas);
-        // 绘制双向表头
+        // draw VH header
         drawHeaderVH(canvas);
-        // 绘制横向表头
+        // draw horizontal header
         drawHeaderH(canvas);
-        // 绘制竖向表头
+        // draw vertical header
         drawHeaderV(canvas);
-        // 绘制单元格内容
+        // draw cells background
+        drawCellsInfoBg(canvas);
+        // draw bottom decorations
+        drawBottomDecorations(canvas);
+        // draw cells info(texts for now)
         drawCellsInfo(canvas);
-        // 绘制线段
+        // draw strokes while strokeSize>0
         drawStrokes(canvas);
-        // 绘制合并的单元格
+        // draw merged cells
         drawMergedCells(canvas);
-        // 绘制边框
+        // draw outer stroke while outStrokeSize>0
         drawOutStroke(canvas);
+        // draw top decorations, above everything
+        drawTopDecorations(canvas);
     }
 
-    // 初始化坐标等数据
+    // init data such as coordinate
     private void initData() {
-        // 固定模式中（此时宽高不能为wrap_content），确定每一行、每一列的宽高
+        // calculate width and height of each line and row in normal mode
         if (mode == MODE_FIX_WIDTH || mode == MODE_FIX_WIDTH_HEIGHT) {
             float fixWidth = 1.0f * (bgRectF.right - bgRectF.left) / lines;
             fixWidth = fixWidth >= outStrokeCorner ? fixWidth : outStrokeCorner;
@@ -245,7 +261,8 @@ public class EasyTableView extends View {
                 heightArr[r] = fixHeight;
         }
 
-        // 初始化每个单元格的起始x、y坐标，并统一设置row、line，统一设置width、height为最大值（需要以最大值为标准）
+        // init cells x, y coordinate, set row and line,
+        // set width and height of each cell to max value
         float startY = bgRectF.top;
         for (int r = 0; r < rows; r++) {
             float startX = bgRectF.left;
@@ -261,7 +278,7 @@ public class EasyTableView extends View {
             startY += heightArr[r];
         }
 
-        // 初始化合并后的单元格的startX、startY、width和height
+        // init merged cells startX, startY, width and height
         int mergeInfoSize = mergeInfoList.size();
         for (int i = 0; i < mergeInfoSize; i++) {
             MergeInfo mergeInfo = mergeInfoList.get(i);
@@ -272,7 +289,7 @@ public class EasyTableView extends View {
             for (int r = mergeInfo.startRow; r <= mergeInfo.endRow; r++) {
                 width = 0.0f;
                 for (int l = mergeInfo.startLine; l <= mergeInfo.endLine; l++)
-                    width += cellArr[r][l].width; // 为了方便，不另外循环计算了
+                    width += cellArr[r][l].width; // just for convenience
 
                 height += cellArr[r][0].height;
             }
@@ -281,15 +298,15 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制背景
+    // draw background
     private void drawBg(Canvas canvas) {
         paint.setColor(bgColor);
         canvas.drawRoundRect(bgRectF, outStrokeCorner, outStrokeCorner, paint);
     }
 
-    // 绘制双向表头
+    // draw VH header
     private void drawHeaderVH(Canvas canvas) {
-        // 至少2x2的表格才绘制双向表头
+        // draw at least 2x2
         if (cellArr.length > 1 && cellArr[0].length > 1) {
             float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerHVColor);
@@ -309,9 +326,9 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制横向表头
+    // draw horizontal header
     private void drawHeaderH(Canvas canvas) {
-        // 至少2行2列才绘制
+        // draw at least 2x2
         if (cellArr.length > 1 && cellArr[0].length > 1) {
             float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerHColor);
@@ -331,9 +348,9 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制竖向表头
+    // draw vertical header
     private void drawHeaderV(Canvas canvas) {
-        // 至少2行2列才绘制
+        // draw at least 2x2
         if (cellArr.length > 1 && cellArr[0].length > 1) {
             float twiceCorner = outStrokeCorner * 2;
             paint.setColor(headerVColor);
@@ -353,12 +370,11 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制单元格内容，包括表头
-    private void drawCellsInfo(Canvas canvas) {
+    // draw background of cells
+    private void drawCellsInfoBg(Canvas canvas) {
         for (int r = 0; r < rows; r++) {
             for (int l = 0; l < lines; l++) {
                 if (cellArr[r][l].type != CellInfo.TYPE_NONE) {
-                    // 绘制该单元格背景
                     if (cellArr[r][l].bgColor != 0 && cellArr[r][l].width > 0 && cellArr[r][l].height > 0) {
                         tRectF.left = cellArr[r][l].startX;
                         tRectF.top = cellArr[r][l].startY;
@@ -410,15 +426,27 @@ public class EasyTableView extends View {
 
                         canvas.drawPath(tPath, paint);
                     }
-
-                    // 绘制单元格内的字符
-                    drawTexts(canvas, cellArr[r][l]);
                 }
             }
         }
     }
 
-    // 绘制线段
+    // draw bottom decorations
+    private void drawBottomDecorations(Canvas canvas) {
+        if (null == bottomDecoration)
+            return;
+        bottomDecoration.draw(canvas);
+    }
+
+    // draw info of cells(texts for now)
+    private void drawCellsInfo(Canvas canvas) {
+        for (int r = 0; r < rows; r++)
+            for (int l = 0; l < lines; l++)
+                if (cellArr[r][l].type != CellInfo.TYPE_NONE)
+                    drawTexts(canvas, cellArr[r][l]);
+    }
+
+    // draw strokes while strokeSize>0
     private void drawStrokes(Canvas canvas) {
         if (strokeSize > 0) {
             strokePaint.setColor(strokeColor);
@@ -432,7 +460,8 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制合并的单元格
+    // draw merged cells, this actually is covering normal cells
+    // but will not cover the strokes
     private void drawMergedCells(Canvas canvas) {
         float halfStrokeSize = strokeSize / 2.0f;
 
@@ -504,7 +533,7 @@ public class EasyTableView extends View {
             canvas.drawPath(tPath, paint);
 
 
-            // 绘制合并后的单元格内的字符
+            // start drawing merged cells texts
             canvas.save();
             canvas.clipRect(tRectF);
 
@@ -541,7 +570,7 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制边框
+    // draw outer stroke while outStrokeSize>0
     private void drawOutStroke(Canvas canvas) {
         if (outStrokeSize > 0) {
             strokePaint.setColor(outStrokeColor);
@@ -568,7 +597,15 @@ public class EasyTableView extends View {
         }
     }
 
-    // 绘制单个单元格中的字符
+    // draw top decorations
+    private void drawTopDecorations(Canvas canvas) {
+        if (null == topDecoration)
+            return;
+        topDecoration.draw(canvas);
+    }
+
+    // draw texts in a cell, can be multiple lines
+    // with different text size and color
     private final void drawTexts(Canvas canvas, CellInfo cellInfo) {
         if (null != cellInfo.texts && cellInfo.texts.length > 0) {
             canvas.save();
@@ -609,7 +646,7 @@ public class EasyTableView extends View {
         }
     }
 
-    // 在tPath中添加一段左上角的圆角
+    // add a left-top circular corner to tPath
     private void addLeftTopCornerPath() {
         tCornerRectF.left = bgRectF.left;
         tCornerRectF.top = bgRectF.top;
@@ -618,7 +655,7 @@ public class EasyTableView extends View {
         tPath.arcTo(tCornerRectF, -90.0f, -90.0f);
     }
 
-    // 在tPath中添加一段左下角的圆角
+    // add a left-bottom circular corner to tPath
     private void addLeftBottomCornerPath() {
         tCornerRectF.left = bgRectF.left;
         tCornerRectF.top = bgRectF.bottom - outStrokeCorner * 2;
@@ -627,7 +664,7 @@ public class EasyTableView extends View {
         tPath.arcTo(tCornerRectF, 180.0f, -90.0f);
     }
 
-    // 在tPath中添加一段右下角的圆角
+    // add a right-bottom circular corner to tPath
     private void addRightBottomCornerPath() {
         tCornerRectF.left = bgRectF.right - outStrokeCorner * 2;
         tCornerRectF.top = bgRectF.bottom - outStrokeCorner * 2;
@@ -636,7 +673,7 @@ public class EasyTableView extends View {
         tPath.arcTo(tCornerRectF, 90.0f, -90.0f);
     }
 
-    // 在tPath中添加一段右上角的圆角
+    // add a right-top circular corner to tPath
     private void addRightTopCornerPath() {
         tCornerRectF.left = bgRectF.right - outStrokeCorner * 2;
         tCornerRectF.top = bgRectF.top;
@@ -668,7 +705,7 @@ public class EasyTableView extends View {
                     float downX = event.getX();
                     float downY = event.getY();
                     Object cell = getCellByXY(downX, downY);
-                    // 按下和释放的是同一个cell
+                    // the same cell while down and up
                     if (cell instanceof CellInfo && curTouchCell instanceof CellInfo &&
                             ((CellInfo) cell).row == ((CellInfo) curTouchCell).row &&
                             ((CellInfo) cell).line == ((CellInfo) curTouchCell).line) {
@@ -687,9 +724,9 @@ public class EasyTableView extends View {
         return super.onTouchEvent(event);
     }
 
-    // 获取坐标x，y对应的cell
+    // get (merged)cell by x, y coordinate
     private Object getCellByXY(float x, float y) {
-        // 合并后的单元格
+        // traverse merged cells
         if (null != mergeInfoList && mergeInfoList.size() > 0) {
             int size = mergeInfoList.size();
             for (int i = 0; i < size; i++) {
@@ -700,7 +737,7 @@ public class EasyTableView extends View {
             }
         }
 
-        // 单元格
+        // traverse cells
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 if (cellArr[r][l].startX <= x && x <= cellArr[r][l].startX + cellArr[r][l].width &&
@@ -711,22 +748,23 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 设置数据项，包含表头的内容，将清除表格原有数据，包括合并单元格的数据
+     * set data list, this will clear the original data
+     * including data of merged cells
      *
-     * @param cellInfoList 数据项
+     * @param cellInfoList data list
      */
     public void setData(ArrayList<CellInfo> cellInfoList) {
         if (null == cellInfoList || cellInfoList.size() <= 0)
             return;
 
-        // 清除原有数据
+        // clear original data
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 cellArr[r][l] = new CellInfo();
         if (null != mergeInfoList && mergeInfoList.size() > 0)
             mergeInfoList.clear();
 
-        // 赋值
+        // set new data
         int size = cellInfoList.size();
         for (int i = 0; i < size; i++) {
             CellInfo cellInfo = cellInfoList.get(i);
@@ -738,7 +776,7 @@ public class EasyTableView extends View {
             }
         }
 
-        // 计算出每一列的最大宽度
+        // calculate max width of each line
         int textRows;
         if (mode != MODE_FIX_WIDTH && mode != MODE_FIX_WIDTH_HEIGHT) {
             float txtWidth;
@@ -749,7 +787,7 @@ public class EasyTableView extends View {
                 fixMaxWidth = -1;
                 for (int r = 0; r < rows; r++) {
                     if (null != cellArr[r][l].texts) {
-                        if (cellArr[r][l].width < 0) { // 根据测量的字符宽度来计算
+                        if (cellArr[r][l].width < 0) { // calculate by width of texts
                             textRows = cellArr[r][l].texts.length;
                             for (int t = 0; t < textRows; t++) {
                                 textPaint.setTextSize(cellArr[r][l].textSizes[t]);
@@ -757,11 +795,11 @@ public class EasyTableView extends View {
                                 if (maxWidth < txtWidth)
                                     maxWidth = txtWidth;
                             }
-                        } else { // 根据设置的值来计算
+                        } else { // set by width value
                             if (fixMaxWidth < cellArr[r][l].width)
                                 fixMaxWidth = cellArr[r][l].width;
                         }
-                    } else if (fixMaxWidth < cellArr[r][l].width) { // 没有字符的时候,直接根据设置的值来计算
+                    } else if (fixMaxWidth < cellArr[r][l].width) { // set by width value while no texts found
                         fixMaxWidth = cellArr[r][l].width;
                     }
                 }
@@ -775,7 +813,7 @@ public class EasyTableView extends View {
             }
         }
 
-        // 计算出每一行的最大高度
+        // calculate max height of each row
         if (mode != MODE_FIX_HEIGHT && mode != MODE_FIX_WIDTH_HEIGHT) {
             Paint.FontMetrics fm;
             float txtHeight;
@@ -787,7 +825,7 @@ public class EasyTableView extends View {
                 fixMaxHeight = -1;
                 for (int l = 0; l < lines; l++) {
                     if (null != cellArr[r][l].texts) {
-                        if (cellArr[r][l].height < 0) { // 根据测量的字符高度来计算
+                        if (cellArr[r][l].height < 0) { // calculate by height of texts
                             tempHeight = 0.0f;
                             textRows = cellArr[r][l].texts.length;
                             for (int t = 0; t < textRows; t++) {
@@ -799,11 +837,11 @@ public class EasyTableView extends View {
 
                             if (maxHeight < tempHeight)
                                 maxHeight = tempHeight;
-                        } else { // 根据设置的值来计算
+                        } else { // set by height value
                             if (fixMaxHeight < cellArr[r][l].height)
                                 fixMaxHeight = cellArr[r][l].height;
                         }
-                    } else if (fixMaxHeight < cellArr[r][l].height) { // 没有字符的时候，直接根据设置的值来计算
+                    } else if (fixMaxHeight < cellArr[r][l].height) { // set by height value while no texts found
                         fixMaxHeight = cellArr[r][l].height;
                     }
                 }
@@ -822,11 +860,12 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 设置数据项，包含表头的内容，将清除表格原有数据，包括合并单元格的数据
+     * set data list, this will clear the original data
+     * including data of merged cells
      *
-     * @param rows         行数
-     * @param lines        列数
-     * @param cellInfoList 数据项
+     * @param rows         rows
+     * @param lines        lines
+     * @param cellInfoList data list
      */
     public void setData(int rows, int lines, ArrayList<CellInfo> cellInfoList) {
         this.rows = rows;
@@ -836,18 +875,20 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 更新表格数据，若设置了width或height，将强制更新单元格大小，大小以某行某列最后一个输入数据为准
+     * update data, for now, only set the width and height of each line and row
+     * to the last CellInfo of the data list
      *
-     * @param cellInfos 需要更新的数据项
+     * @param cellInfos data list that need to update
      */
     public void updateData(CellInfo... cellInfos) {
         updateData(Arrays.asList(cellInfos));
     }
 
     /**
-     * 更新表格数据，若设置了width或height，将强制更新单元格大小，大小以某行某列最后一个输入数据为准
+     * update data, for now, only set the width and height of each line and row
+     * to the last CellInfo of the data list
      *
-     * @param cellInfoList 需要更新的数据项集合
+     * @param cellInfoList data list that need to update
      */
     public void updateData(List<CellInfo> cellInfoList) {
         float w;
@@ -879,18 +920,18 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 更新合并的单元格数据
+     * update merged cells, only add as new MergeInfo
      *
-     * @param mergeInfos 需要更新的合并数据项集合
+     * @param mergeInfos merged data list that need to update
      */
     public void updateMergeData(MergeInfo... mergeInfos) {
         updateMergeData(Arrays.asList(mergeInfos));
     }
 
     /**
-     * 更新合并的单元格数据
+     * update merged cells, only add as new MergeInfo
      *
-     * @param mergeInfoList 需要更新的合并数据项集合
+     * @param mergeInfoList merged data list that need to update
      */
     public void updateMergeData(List<MergeInfo> mergeInfoList) {
         for (MergeInfo mergeInfo : mergeInfoList) {
@@ -903,13 +944,13 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 添加若干新行
+     * add several new rows
      *
-     * @param curRow    在此行的顶部或底部添加，小于0则为0，大于等于rows则为rows-1
-     * @param newRows   新添加的行数
-     * @param height    新行的高度，单位px，小于0时使用默认高度ADD_ROWS_DEFAULT_HEIGHT
-     * @param direction 方向，为ADD_ROWS_TOP或ADD_ROWS_BOTTOM
-     * @return 是否添加成功
+     * @param curRow    add new rows by curRow, between 0 and rows-1
+     * @param newRows   rows num added
+     * @param height    height of new rows(px), using default ADD_ROWS_DEFAULT_HEIGHT while less than 0
+     * @param direction ADD_ROWS_TOP or ADD_ROWS_BOTTOM
+     * @return true if success, false if failed
      */
     public boolean addNewRows(int curRow, int newRows, float height, int direction) {
         if (newRows <= 0)
@@ -926,7 +967,7 @@ public class EasyTableView extends View {
         if (height < 0)
             height = ADD_ROWS_DEFAULT_HEIGHT;
 
-        // 复制数据并添加新行
+        // copy original data to new list with growing rows
         CellInfo[][] tCellArr = new CellInfo[rows + newRows][lines];
         float[] tHeightArr = new float[rows + newRows];
         for (int r = 0; r <= curRow; r++) {
@@ -945,7 +986,7 @@ public class EasyTableView extends View {
             tHeightArr[r] = heightArr[r - newRows];
         }
 
-        // 释放原数据
+        // release the original data
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 cellArr[r][l] = null;
@@ -963,18 +1004,19 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 删除若干行，将同时删除数据
+     * remove several rows and the corresponding data
      *
-     * @param start 起始行，范围0~(rows-1)
-     * @param end   结束行，范围0~(rows-1)
-     * @return 是否删除成功
+     * @param start starting row, between 0 to rows-1
+     * @param end   ending row, between 0 to rows-1
+     * @return true if success, false if failed
      */
     public boolean removeRows(int start, int end) {
         int rowsToDel = end - start + 1;
         if (rowsToDel <= 0 || rowsToDel >= rows || start < 0 || end >= rows)
             return false;
 
-        // 复制数据并删除旧行
+        // copy original data to new list with reducing rows
+        // and remove the corresponding data
         int newRows = rows - rowsToDel;
         CellInfo[][] tCellArr = new CellInfo[newRows][lines];
         float[] tHeightArr = new float[newRows];
@@ -987,11 +1029,12 @@ public class EasyTableView extends View {
             tHeightArr[r - rowsToDel] = heightArr[r];
         }
 
-        // 只有一行的情况下，行高不能小于2*outStrokeCorner
+        // cell's height can not be less than 2*outStrokeCorner
+        // while having only 1 row
         if (newRows == 1 && tHeightArr[0] < 2.0f * outStrokeCorner)
             tHeightArr[0] = 2.0f * outStrokeCorner;
 
-        // 释放原数据
+        // release the original data
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 cellArr[r][l] = null;
@@ -1009,13 +1052,13 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 添加若干新列
+     * add several new lines
      *
-     * @param curLine   在此列的左侧或右侧添加，小于0则为0，大于等于lines则为lines-1
-     * @param newLines  新添加的行数
-     * @param width     新行的高度，单位px，小于0时使用默认高度ADD_ROWS_DEFAULT_HEIGHT
-     * @param direction 方向，为ADD_LINES_LEFT或ADD_LINES_RIGHT
-     * @return 是否添加成功
+     * @param curLine   add new lines by curLine, between 0 and lines-1
+     * @param newLines  lines num added
+     * @param width     width of new lines(px), using default ADD_LINES_DEFAULT_WIDTH while less than 0
+     * @param direction ADD_LINES_LEFT or ADD_LINES_RIGHT
+     * @return true if success, false if failed
      */
     public boolean addNewLines(int curLine, int newLines, float width, int direction) {
         if (newLines <= 0)
@@ -1032,7 +1075,7 @@ public class EasyTableView extends View {
         if (width < 0)
             width = ADD_LINES_DEFAULT_WIDTH;
 
-        // 复制数据并添加新列
+        // copy original data to new list with growing lines
         CellInfo[][] tCellArr = new CellInfo[rows][lines + newLines];
         float[] tWidthArr = new float[lines + newLines];
         for (int r = 0; r < rows; r++) {
@@ -1045,7 +1088,7 @@ public class EasyTableView extends View {
                 tCellArr[r][l] = cellArr[r][l - newLines];
         }
 
-        // 各列宽度只需要赋值一次
+        // width of each line should be set once
         for (int l = 0; l <= curLine; l++)
             tWidthArr[l] = widthArr[l];
         for (int l = curLine + 1; l <= curLine + newLines; l++)
@@ -1053,7 +1096,7 @@ public class EasyTableView extends View {
         for (int l = curLine + newLines + 1; l < lines + newLines; l++)
             tWidthArr[l] = widthArr[l - newLines];
 
-        // 释放原数据
+        // release the original data
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 cellArr[r][l] = null;
@@ -1071,18 +1114,19 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 删除若干列，将删除数据
+     * remove several lines and the corresponding data
      *
-     * @param start 起始列，范围0~(lines-1)
-     * @param end   结束列，范围0~(lines-1)
-     * @return 是否删除成功
+     * @param start starting line, between 0 to lines-1
+     * @param end   ending line, between 0 to lines-1
+     * @return true if success, false if failed
      */
     public boolean removeLines(int start, int end) {
         int linesToDel = end - start + 1;
         if (linesToDel <= 0 || linesToDel >= lines || start < 0 || end >= lines)
             return false;
 
-        // 复制数据并删除旧列
+        // copy original data to new list with reducing lines
+        // and remove the corresponding data
         int newLines = lines - linesToDel;
         CellInfo[][] tCellArr = new CellInfo[rows][newLines];
         float[] tWidthArr = new float[newLines];
@@ -1094,17 +1138,18 @@ public class EasyTableView extends View {
                 tCellArr[r][l - linesToDel] = cellArr[r][l];
         }
 
-        // 各列宽度只需赋值一次
+        // width of each line should be set once
         for (int l = 0; l < start; l++)
             tWidthArr[l] = widthArr[l];
         for (int l = end + 1; l < lines; l++)
             tWidthArr[l - linesToDel] = widthArr[l];
 
-        // 只有一列的情况下，列宽不能小于2*outStrokeCorner
+        // cell's width can not be less than 2*outStrokeCorner
+        // while having only 1 line
         if (newLines == 1 && tWidthArr[0] < 2.0f * outStrokeCorner)
             tWidthArr[0] = 2.0f * outStrokeCorner;
 
-        // 释放原数据
+        // release the original data
         for (int r = 0; r < rows; r++)
             for (int l = 0; l < lines; l++)
                 cellArr[r][l] = null;
@@ -1121,20 +1166,22 @@ public class EasyTableView extends View {
         return true;
     }
 
-    // 填充单元格texts的属性，包括textColors和textSizes
+    // fill the attributes of cells, including textColors and textSizes,
+    // note that if textColor is set, textColors will be covered,
+    // the same with textSize and textSizes
     private void fillTextAttrs(CellInfo cellInfo) {
         if (null != cellInfo.texts && cellInfo.texts.length > 0) {
-            if (cellInfo.textColor == 0 && null == cellInfo.textColors) // textColor和textColors都没有设置
+            if (cellInfo.textColor == 0 && null == cellInfo.textColors) // both textColor and textColors are not set
                 cellInfo.textColor = Color.BLACK;
-            if (cellInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
+            if (cellInfo.textColor != 0) { // cover textColors if textColor is set
                 cellInfo.textColors = new int[cellInfo.texts.length];
                 for (int t = 0; t < cellInfo.texts.length; t++)
                     cellInfo.textColors[t] = cellInfo.textColor;
             }
 
-            if (cellInfo.textSize == -1 && null == cellInfo.textSizes) // textSize和textSizes都没有设置
+            if (cellInfo.textSize == -1 && null == cellInfo.textSizes) // both textSize and textSizes are not set
                 cellInfo.textSize = spToPx(14);
-            if (cellInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
+            if (cellInfo.textSize != -1) { // cover textSizes if textSize is set
                 cellInfo.textSizes = new int[cellInfo.texts.length];
                 for (int t = 0; t < cellInfo.texts.length; t++)
                     cellInfo.textSizes[t] = cellInfo.textSize;
@@ -1142,20 +1189,22 @@ public class EasyTableView extends View {
         }
     }
 
-    // 填充合并单元格texts的属性，包括textColors和textSizes
+    // fill the attributes of merged cells, including textColors and textSizes,
+    // note that if textColor is set, textColors will be covered,
+    // the same with textSize and textSizes
     private void fillMergeTextAttrs(MergeInfo mergeInfo) {
         if (null != mergeInfo.texts && mergeInfo.texts.length > 0) {
-            if (mergeInfo.textColor == 0 && null == mergeInfo.textColors) // textColor和textColors都没有设置
+            if (mergeInfo.textColor == 0 && null == mergeInfo.textColors) // both textColor and textColors are not set
                 mergeInfo.textColor = Color.BLACK;
-            if (mergeInfo.textColor != 0) { // 设置了textColor，则覆盖textColors
+            if (mergeInfo.textColor != 0) { // cover textColors if textColor is set
                 mergeInfo.textColors = new int[mergeInfo.texts.length];
                 for (int t = 0; t < mergeInfo.texts.length; t++)
                     mergeInfo.textColors[t] = mergeInfo.textColor;
             }
 
-            if (mergeInfo.textSize == -1 && null == mergeInfo.textSizes) // textSize和textSizes都没有设置
+            if (mergeInfo.textSize == -1 && null == mergeInfo.textSizes) // both textSize and textSizes are not set
                 mergeInfo.textSize = spToPx(14);
-            if (mergeInfo.textSize != -1) { // 设置了textSize，则覆盖textSizes
+            if (mergeInfo.textSize != -1) { // cover textSizes if textSize is set
                 mergeInfo.textSizes = new int[mergeInfo.texts.length];
                 for (int t = 0; t < mergeInfo.texts.length; t++)
                     mergeInfo.textSizes[t] = mergeInfo.textSize;
@@ -1164,18 +1213,18 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 合并单元格，将自动过滤行列超出范围的数据
+     * merge cells, data with illegal row or line will be ignored
      *
-     * @param mergeInfos 合并单元格数据集
+     * @param mergeInfos merged cells info list
      */
     public void mergeCells(MergeInfo... mergeInfos) {
         mergeCells(Arrays.asList(mergeInfos));
     }
 
     /**
-     * 合并单元格，将自动过滤行列超出范围的数据
+     * merge cells, data with illegal row or line will be ignored
      *
-     * @param mergeInfoList 合并单元格数据集
+     * @param mergeInfoList merged cells info list
      */
     public void mergeCells(List<MergeInfo> mergeInfoList) {
         if (null == mergeInfoList || mergeInfoList.size() == 0)
@@ -1186,7 +1235,7 @@ public class EasyTableView extends View {
         for (int i = 0; i < size; i++) {
             MergeInfo mergeInfo = mergeInfoList.get(i);
 
-            // 过滤超出范围的数据
+            // ignore the illegal data
             if (mergeInfo.startRow > mergeInfo.endRow ||
                     mergeInfo.startLine > mergeInfo.endLine ||
                     mergeInfo.startRow < 0 || mergeInfo.startLine < 0 ||
@@ -1212,18 +1261,18 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 取消合并单元格
+     * unmerge the merged cells
      *
-     * @param mergeInfos 要取消合并的单元格数据集
+     * @param mergeInfos merged cells info list that need to be unmerged
      */
     public void unmergeCells(MergeInfo... mergeInfos) {
         unmergeCells(Arrays.asList(mergeInfos));
     }
 
     /**
-     * 取消合并单元格
+     * unmerge the merged cells
      *
-     * @param mergeInfoList 要取消合并的单元格数据集
+     * @param mergeInfoList merged cells info list that need to be unmerged
      */
     public void unmergeCells(List<MergeInfo> mergeInfoList) {
         if (null == mergeInfoList || mergeInfoList.size() == 0)
@@ -1233,6 +1282,24 @@ public class EasyTableView extends View {
 
         requestLayout();
         invalidate();
+    }
+
+    /**
+     * set the bottom decorations, see {@link EasyDecoration}
+     *
+     * @param decoration your own decoration
+     */
+    public void setBottomDecorations(EasyDecoration decoration) {
+        this.bottomDecoration = decoration;
+    }
+
+    /**
+     * set the top decorations, see {@link EasyDecoration}
+     *
+     * @param decoration your own decoration
+     */
+    public void setTopDecorations(EasyDecoration decoration) {
+        this.topDecoration = decoration;
     }
 
 
@@ -1293,20 +1360,10 @@ public class EasyTableView extends View {
         this.strokeColor = strokeColor;
     }
 
-    /**
-     * 获取线段粗细
-     *
-     * @return 线段粗细，单位px
-     */
     public int getStrokeSize() {
         return strokeSize;
     }
 
-    /**
-     * 设置线段粗细
-     *
-     * @param strokeSize 线段粗细，单位px
-     */
     public void setStrokeSize(int strokeSize) {
         this.strokeSize = strokeSize;
     }
@@ -1319,37 +1376,24 @@ public class EasyTableView extends View {
         this.outStrokeColor = outStrokeColor;
     }
 
-    /**
-     * 获取边框线段粗细
-     *
-     * @return 边框线段粗细，单位px
-     */
     public int getOutStrokeSize() {
         return outStrokeSize;
     }
 
-    /**
-     * 设置边框线段粗细
-     *
-     * @param outStrokeSize 边框线段粗细，单位px
-     */
     public void setOutStrokeSize(int outStrokeSize) {
         this.outStrokeSize = outStrokeSize;
     }
 
-    /**
-     * 获取边框四周圆角半径
-     *
-     * @return 圆角半径，单位px
-     */
     public float getOutStrokeCorner() {
         return outStrokeCorner;
     }
 
     /**
-     * 设置边框四周圆角半径，半径大于四周单元格的长或宽时，将取四周单元格的长或宽的较小值
+     * set the radius of the table's corner, if outStrokeCorner is greater than
+     * width or height of corner cells, outStrokeCorner will be set to the
+     * minimum width or height of the corner cells
      *
-     * @param outStrokeCorner 圆角半径，小于0时，默认设置为四周单元格的长或宽的较小值，单位px
+     * @param outStrokeCorner radius of corner(px)
      */
     public void setOutStrokeCorner(float outStrokeCorner) {
         float min = cellArr[0][0].width;
@@ -1386,7 +1430,8 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 重置，在更新了表格参数后，需要调用此方法重绘表格
+     * redraw the table, note that if any attributes is reset,
+     * this should be call to redraw the table view
      */
     public void reset() {
         requestLayout();
@@ -1394,250 +1439,20 @@ public class EasyTableView extends View {
     }
 
     /**
-     * 一个单元格的信息
-     */
-    public static class CellInfo {
-        /**
-         * 不绘制内容，可用于隐藏单元格内容，单元格数据不会清除
-         */
-        public static final int TYPE_NONE = 0;
-        /**
-         * 正常类型
-         */
-        public static final int TYPE_NORMAL = 1;
-        /**
-         * 按钮类型
-         */
-        public static final int TYPE_BUTTON = 2;
-        /**
-         * 单元格的类型
-         */
-        public int type = TYPE_NORMAL;
-        /**
-         * Object类型的tag标记
-         */
-        public Object tag = null;
-        /**
-         * 所在行
-         */
-        public int row = -1;
-        /**
-         * 所在列
-         */
-        public int line = -1;
-        /**
-         * 起始x坐标，不提供外部设置，只能获取
-         */
-        private float startX = 0.0f;
-        /**
-         * 起始y坐标，不提供外部设置，只能获取
-         */
-        private float startY = 0.0f;
-        /**
-         * 宽度，小于0时，将在绘制单元格时，根据模式来自动设置宽
-         */
-        public float width = -1.0f;
-        /**
-         * 高度，小于0时，将在绘制单元格时，根据模式来自动设置高
-         */
-        public float height = -1.0f;
-        /**
-         * 背景颜色，只有设置时才特殊填充，否则用该单元格默认的颜色填充
-         */
-        public int bgColor = 0;
-        /**
-         * 字体颜色，不设置时默认为Color.BLACK，设置后将覆盖textColors的值
-         */
-        public int textColor = 0;
-        /**
-         * 字体颜色集，设置时必须与texts长度一致
-         */
-        public int[] textColors = null;
-        /**
-         * 字体大小，单位px，不设置时默认为14sp对应的px值，设置后将覆盖textSizes的值
-         */
-        public int textSize = -1;
-        /**
-         * 字体大小集，单位px，设置时必须与texts长度一致
-         */
-        public int[] textSizes = null;
-        /**
-         * 显示的字符
-         */
-        public String[] texts = null;
-
-        public CellInfo() {
-        }
-
-        public CellInfo(
-                int type,
-                Object tag,
-                int row,
-                int line,
-                float width,
-                float height,
-                int bgColor,
-                int textColor,
-                int[] textColors,
-                int textSize,
-                int[] textSizes,
-                String[] texts) {
-            this.type = type;
-            this.tag = tag;
-            this.row = row;
-            this.line = line;
-            this.width = width;
-            this.height = height;
-            this.bgColor = bgColor;
-            this.textColor = textColor;
-            this.textColors = textColors;
-            this.textSize = textSize;
-            this.textSizes = textSizes;
-            this.texts = texts;
-        }
-
-        public float getStartX() {
-            return startX;
-        }
-
-        public float getStartY() {
-            return startY;
-        }
-    }
-
-    /**
-     * 一个合并单元格的信息
-     */
-    public static class MergeInfo {
-        public static final int TYPE_NORMAL = 1;
-        public static final int TYPE_BUTTON = 2;
-        /**
-         * 合并后的单元格的类型
-         */
-        public int type = TYPE_NORMAL;
-        /**
-         * Object类型的tag标记
-         */
-        public Object tag = null;
-        /**
-         * 合并起始行下标
-         */
-        public int startRow;
-        /**
-         * 合并起始列下标
-         */
-        public int startLine;
-        /**
-         * 合并结束行下标
-         */
-        public int endRow;
-        /**
-         * 合并结束列下标
-         */
-        public int endLine;
-        /**
-         * 起始x坐标，不提供外部设置，只能获取
-         */
-        private float startX = 0.0f;
-        /**
-         * 起始y坐标，不提供外部设置，只能获取
-         */
-        private float startY = 0.0f;
-        /**
-         * 宽度，不提供外部设置，只能获取
-         */
-        private float width = -1.0f;
-        /**
-         * 高度，不提供外部设置，只能获取
-         */
-        private float height = -1.0f;
-        /**
-         * 背景颜色，默认时自动使用左上角的单元格颜色来填充
-         */
-        public int bgColor = 0;
-        /**
-         * 字体颜色，不设置时默认为Color.BLACK，设置后将覆盖textColors的值
-         */
-        public int textColor = 0;
-        /**
-         * 字体颜色集，设置时必须与texts长度一致
-         */
-        public int[] textColors = null;
-        /**
-         * 字体大小，单位px，不设置时默认为14sp对应的px值，设置后将覆盖textSizes的值
-         */
-        public int textSize = -1;
-        /**
-         * 字体大小集，单位px，设置时必须与texts长度一致
-         */
-        public int[] textSizes = null;
-        /**
-         * 合并后的单元格显示的字符，单元格合并后，不设置时，只显示左上角的单元格的字符
-         */
-        public String[] texts;
-
-        public MergeInfo() {
-        }
-
-        public MergeInfo(
-                int type,
-                Object tag,
-                int startRow,
-                int startLine,
-                int endRow,
-                int endLine,
-                int bgColor,
-                int textColor,
-                int[] textColors,
-                int textSize,
-                int[] textSizes,
-                String[] texts) {
-            this.type = type;
-            this.tag = tag;
-            this.startRow = startRow;
-            this.startLine = startLine;
-            this.endRow = endRow;
-            this.endLine = endLine;
-            this.bgColor = bgColor;
-            this.textColor = textColor;
-            this.textColors = textColors;
-            this.textSize = textSize;
-            this.textSizes = textSizes;
-            this.texts = texts;
-        }
-
-        public float getStartX() {
-            return startX;
-        }
-
-        public float getStartY() {
-            return startY;
-        }
-
-        public float getWidth() {
-            return width;
-        }
-
-        public float getHeight() {
-            return height;
-        }
-    }
-
-    /**
-     * 监听单元格、合并后的单元格的点击事件
+     * listener of cells and merged cells
      */
     public interface OnCellClickListener {
         /**
-         * 单元格点击时回调
+         * invoke while a cell is click
          *
-         * @param cellInfo 单元格信息
+         * @param cellInfo CellInfo
          */
         public void onCellClick(CellInfo cellInfo);
 
         /**
-         * 合并后的单元格点击时回调
+         * invoke while a merged cell is click
          *
-         * @param mergeInfo 合并后的单元格信息
+         * @param mergeInfo MergeInfo
          */
         public void onMergedCellClick(MergeInfo mergeInfo);
     }
@@ -1645,7 +1460,7 @@ public class EasyTableView extends View {
     private OnCellClickListener onCellClickListener;
 
     /**
-     * 设置监听点击的事件
+     * set the click listener
      *
      * @param onCellClickListener OnCellClickListener
      */

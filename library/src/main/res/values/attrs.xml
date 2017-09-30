@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="EasyTableView">
+        <attr name="etvRows" format="integer"/>
+        <attr name="etvLines" format="integer"/>
+        <attr name="etvBgColor" format="color"/>
+        <attr name="etvHeaderHVColor" format="color"/>
+        <attr name="etvHeaderHColor" format="color"/>
+        <attr name="etvHeaderVColor" format="color"/>
+        <attr name="etvStrokeColor" format="color"/>
+        <attr name="etvStrokeSize" format="dimension"/>
+        <attr name="etvOutStrokeColor" format="color"/>
+        <attr name="etvOutStrokeSize" format="dimension"/>
+        <attr name="etvOutStrokeCorner" format="dimension"/>
+        <attr name="etvMode" format="enum">
+            <enum name="normal" value="0"/>
+            <enum name="fixWidth" value="1"/>
+            <enum name="fixHeight" value="2"/>
+            <enum name="fixWidthHeight" value="3"/>
+        </attr>
+    </declare-styleable>
+
+</resources>

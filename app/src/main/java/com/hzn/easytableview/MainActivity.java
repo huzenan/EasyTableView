@@ -17,6 +17,11 @@ import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.hzn.lib.EasyPathView;
+import com.hzn.library.table.CellInfo;
+import com.hzn.library.table.EasyTableView;
+import com.hzn.library.table.MergeInfo;
+
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -51,10 +56,10 @@ public class MainActivity extends AppCompatActivity {
     private int rows;
     private int lines;
     private DisplayMetrics dm;
-    private ArrayList<EasyTableView.CellInfo> cellInfoList;
+    private ArrayList<CellInfo> cellInfoList;
 
-    private EasyTableView.CellInfo curCellInfo;
-    private EasyTableView.MergeInfo curMergeInfo;
+    private CellInfo curCellInfo;
+    private MergeInfo curMergeInfo;
     private float w;
     private float h;
 
@@ -84,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
         h = 1.0f * (dm.heightPixels - dipToPx(60)) / rows;
         cellInfoList = new ArrayList<>();
         for (int r = 0; r < rows; r++) {
-            EasyTableView.CellInfo cellInfo = new EasyTableView.CellInfo();
+            CellInfo cellInfo = new CellInfo();
             cellInfo.row = r;
             cellInfo.line = 0;
             cellInfo.width = w;
@@ -92,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
             cellInfoList.add(cellInfo);
         }
         for (int l = 1; l < lines; l++) {
-            EasyTableView.CellInfo cellInfo = new EasyTableView.CellInfo();
+            CellInfo cellInfo = new CellInfo();
             cellInfo.row = 0;
             cellInfo.line = l;
             cellInfo.width = w;
@@ -148,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         table.setData(cellInfoList);
         table.setOnCellClickListener(new EasyTableView.OnCellClickListener() {
             @Override
-            public void onCellClick(EasyTableView.CellInfo cellInfo) {
+            public void onCellClick(CellInfo cellInfo) {
                 if (null == curCellInfo || curCellInfo != cellInfo) {
                     curMergeInfo = null;
                     tvMerge.setText("MERGE");
@@ -159,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onMergedCellClick(EasyTableView.MergeInfo mergeInfo) {
+            public void onMergedCellClick(MergeInfo mergeInfo) {
                 if (null == curMergeInfo || curMergeInfo != mergeInfo) {
                     curCellInfo = null;
                     tvMerge.setText("UNMERGE");
@@ -348,7 +353,7 @@ public class MainActivity extends AppCompatActivity {
                             !TextUtils.isEmpty(etStartLine.getText()) &&
                             !TextUtils.isEmpty(etEndRow.getText()) &&
                             !TextUtils.isEmpty(etEndLine.getText())) {
-                        EasyTableView.MergeInfo mergeInfo = new EasyTableView.MergeInfo();
+                        MergeInfo mergeInfo = new MergeInfo();
                         mergeInfo.startRow = Integer.valueOf(etStartRow.getText().toString());
                         mergeInfo.startLine = Integer.valueOf(etStartLine.getText().toString());
                         mergeInfo.endRow = Integer.valueOf(etEndRow.getText().toString());
@@ -489,7 +494,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void selectCell(EasyTableView.CellInfo cellInfo) {
+    private void selectCell(CellInfo cellInfo) {
         curCellInfo = cellInfo;
         layoutSettings.setVisibility(View.VISIBLE);
         int pWidth = (int) ((1.0f * cellInfo.width / w) * 100);
@@ -510,7 +515,7 @@ public class MainActivity extends AppCompatActivity {
         removeSelectRect();
     }
 
-    private void selectMergeCell(EasyTableView.MergeInfo mergeInfo) {
+    private void selectMergeCell(MergeInfo mergeInfo) {
         curMergeInfo = mergeInfo;
         layoutSettings.setVisibility(View.VISIBLE);
         sbWidth.setEnabled(false);
@@ -607,9 +612,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private ArrayList<EasyTableView.MergeInfo> getMergeInfoList() {
-        ArrayList<EasyTableView.MergeInfo> mergeInfoList = new ArrayList<>();
-        EasyTableView.MergeInfo mergeInfo = new EasyTableView.MergeInfo();
+    private ArrayList<MergeInfo> getMergeInfoList() {
+        ArrayList<MergeInfo> mergeInfoList = new ArrayList<>();
+        MergeInfo mergeInfo = new MergeInfo();
         mergeInfo.startRow = 3;
         mergeInfo.startLine = 0;
         mergeInfo.endRow = 3;

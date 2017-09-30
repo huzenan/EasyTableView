@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:custom="http://schemas.android.com/apk/res-auto"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="@color/green_blue"
+              android:gravity="center"
+              android:orientation="vertical"
+    >
+
+    <com.hzn.library.table.EasyTableView
+        android:id="@+id/calendar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        custom:etvBgColor="@color/white"
+        custom:etvHeaderHColor="@color/transparent"
+        custom:etvHeaderHVColor="@color/transparent"
+        custom:etvHeaderVColor="@color/transparent"
+        custom:etvLines="7"
+        custom:etvMode="fixWidthHeight"
+        custom:etvOutStrokeColor="@color/transparent"
+        custom:etvOutStrokeCorner="2dp"
+        custom:etvRows="8"
+        custom:etvStrokeColor="@color/transparent"
+        custom:etvStrokeSize="1dp"
+        />
+
+</LinearLayout>
