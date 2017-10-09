@@ -48,8 +48,10 @@ public class CalendarCheckDecoration implements EasyDecoration {
         if (null == checkedCell)
             return;
 
-        if (isCellEqualed(checkedCell))
+        if (isCellEqualed(checkedCell)) {
+            curCheckedCell = null;
             return;
+        }
 
         curCheckedCell = checkedCell;
 
