@@ -1,5 +1,5 @@
 # EasyTableView
-EasyTableView is a light table view for Android. It has 4 modes: normal, fixWidth, fixHeight and fixWidthHeight. "Fix" means the width or height of cells are auto set, and can't be edited. It's simple and fun, enjoy it!
+EasyTableView is a light table view for Android. It has 4 modes: normal, fixWidth, fixHeight and fixWidthHeight. "Fix" means the width or height of cells are auto set, and can't be edited. Also you can add decorations on the table such as drawing a calendar. It's simple and fun, enjoy it!
 
 ## ScreenShots
 >Edit one cell
@@ -9,6 +9,10 @@ EasyTableView is a light table view for Android. It has 4 modes: normal, fixWidt
 >Edit the hole table
 
 ![table_hole_table](https://github.com/huzenan/EasyTableView/blob/master/screenshots/table_hole_table.gif)
+
+>Using decorations
+
+![table_calendar_decorations](https://github.com/huzenan/EasyTableView/blob/master/screenshots/calendar.gif)
 
 ## Usage
 >layout
@@ -54,6 +58,18 @@ EasyTableView is a light table view for Android. It has 4 modes: normal, fixWidt
         }
     });
     
+    // long click
+    table.setOnCellLongClickListener(new EasyTableView.OnCellLongClickListener() {
+        @Override
+        public void onCellLongClick(CellInfo cellInfo) {
+            // your codes.
+        }
+        @Override
+        public void onMergedCellLongClick(MergeInfo mergeInfo) {
+            // your codes.
+        }
+    });
+    
     // update
     curCellInfo.texts = new String[] {"good", "nice"};
     curCellInfo.textSize = newSize;
@@ -85,4 +101,17 @@ EasyTableView is a light table view for Android. It has 4 modes: normal, fixWidt
     ...
     table.unmergeCells(mergeInfo);
     ...
+```
+
+>Decorations
+
+Implement interface EasyDecoration, it has only one method 'draw' that will be invoke during the drawing process of EasyTableView. For now we have several default decorations, see [CircleDecoration](https://github.com/huzenan/EasyTableView/blob/master/library/src/main/java/com/hzn/library/decoration/CircleDecoration.java) and [RangeDecoration](https://github.com/huzenan/EasyTableView/blob/master/library/src/main/java/com/hzn/library/decoration/RangeDecoration.java).
+
+And it is easy to set decorations:
+```java
+    // bottom decoration, drawing above cells background, and below cells texts
+    table.setBottomDecorations(new MyBottomDecoration());
+    
+    // top decoration, drawing above everything
+    table.setTopDecorations(new MyTopDecoration());
 ```
