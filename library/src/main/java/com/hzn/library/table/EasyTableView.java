@@ -123,6 +123,8 @@ public class EasyTableView extends View {
     private float downY;
     private int touchSlop;
 
+    private CheckForLongPress checkForLongPress;
+    private boolean hasPerformedLongPress;
 
     public EasyTableView(Context context) {
         this(context, null);
@@ -690,6 +692,7 @@ public class EasyTableView extends View {
                     downX = event.getX();
                     downY = event.getY();
                     curTouchCell = getCellByXY(downX, downY);
+                    checkForLongClick();
                     return true;
                 }
                 case MotionEvent.ACTION_MOVE: {
@@ -702,6 +705,11 @@ public class EasyTableView extends View {
                 }
                 break;
                 case MotionEvent.ACTION_UP: {
+                    if (hasPerformedLongPress)
+                        return false;
+
+                    removeLongPressCallback();
+
                     float downX = event.getX();
                     float downY = event.getY();
                     Object cell = getCellByXY(downX, downY);
@@ -717,6 +725,10 @@ public class EasyTableView extends View {
                             ((MergeInfo) cell).endLine == ((MergeInfo) curTouchCell).endLine) {
                         onCellClickListener.onMergedCellClick((MergeInfo) cell);
                     }
+                }
+                break;
+                case MotionEvent.ACTION_CANCEL: {
+                    removeLongPressCallback();
                 }
                 break;
             }
@@ -1430,7 +1442,7 @@ public class EasyTableView extends View {
     }
 
     /**
-     * redraw the table, note that if any attributes is reset,
+     * redraw the table, note that if any attributes or decorations are reset,
      * this should be call to redraw the table view
      */
     public void reset() {
@@ -1438,23 +1450,25 @@ public class EasyTableView extends View {
         invalidate();
     }
 
+    // click
+
     /**
-     * listener of cells and merged cells
+     * click listener of cells and merged cells
      */
     public interface OnCellClickListener {
         /**
-         * invoke while a cell is click
+         * invoke while a cell is clicked
          *
          * @param cellInfo CellInfo
          */
-        public void onCellClick(CellInfo cellInfo);
+        void onCellClick(CellInfo cellInfo);
 
         /**
-         * invoke while a merged cell is click
+         * invoke while a merged cell is clicked
          *
          * @param mergeInfo MergeInfo
          */
-        public void onMergedCellClick(MergeInfo mergeInfo);
+        void onMergedCellClick(MergeInfo mergeInfo);
     }
 
     private OnCellClickListener onCellClickListener;
@@ -1466,6 +1480,71 @@ public class EasyTableView extends View {
      */
     public void setOnCellClickListener(OnCellClickListener onCellClickListener) {
         this.onCellClickListener = onCellClickListener;
+    }
+
+
+    // long click
+
+    /**
+     * long click listener of cells and merged cells
+     */
+    public interface OnCellLongClickListener {
+        /**
+         * invoke while a cell is being clicked and held
+         *
+         * @param cellInfo CellInfo
+         */
+        void onCellLongClick(CellInfo cellInfo);
+
+        /**
+         * invoke while a merged cell is being clicked and held
+         *
+         * @param mergeInfo MergeInfo
+         */
+        void onMergedCellLongClick(MergeInfo mergeInfo);
+    }
+
+    private OnCellLongClickListener onCellLongClickListener;
+
+    /**
+     * set the long click listener
+     *
+     * @param onCellLongClickListener OnCellLongClickListener
+     */
+    public void setOnCellLongClickListener(OnCellLongClickListener onCellLongClickListener) {
+        this.onCellLongClickListener = onCellLongClickListener;
+    }
+
+    // check and start a Runnable action that perform long click of cells
+    private void checkForLongClick() {
+        hasPerformedLongPress = false;
+        if (null == checkForLongPress)
+            checkForLongPress = new CheckForLongPress();
+        postDelayed(checkForLongPress, ViewConfiguration.getLongPressTimeout());
+    }
+
+    private void performCellLongClick(Object curTouchCell) {
+        if (null == onCellLongClickListener)
+            return;
+
+        if (curTouchCell instanceof CellInfo)
+            onCellLongClickListener.onCellLongClick((CellInfo) curTouchCell);
+        else if (curTouchCell instanceof MergeInfo)
+            onCellLongClickListener.onMergedCellLongClick((MergeInfo) curTouchCell);
+    }
+
+    // remove the long press action
+    private void removeLongPressCallback() {
+        if (null != checkForLongPress)
+            removeCallbacks(checkForLongPress);
+    }
+
+    private final class CheckForLongPress implements Runnable {
+        @Override
+        public void run() {
+            performCellLongClick(curTouchCell);
+            hasPerformedLongPress = true;
+        }
     }
 
     private int spToPx(float spValue) {

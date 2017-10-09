@@ -4,11 +4,9 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.Toast;
 
 import com.hzn.library.decoration.CircleDecoration;
 import com.hzn.library.decoration.EasyDecoration;
@@ -42,12 +40,14 @@ public class CalendarActivity extends AppCompatActivity {
     private int end = -1;
     private float radius;
     private RangeDecoration rangeDecoration;
+    private CalendarCheckDecoration checkDecoration;
 
     private int titleColor;
     private int weekColor;
     private int dayColor;
     private int rangeColor;
     private int rangeTextColor;
+    private int checkColor;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,7 +57,7 @@ public class CalendarActivity extends AppCompatActivity {
         initColor();
         initData();
         initCalendar();
-        initRangeDecoration();
+        initDecorations();
     }
 
     private void initColor() {
@@ -66,6 +66,7 @@ public class CalendarActivity extends AppCompatActivity {
         dayColor = getResources().getColor(R.color.dark_gray);
         rangeColor = getResources().getColor(R.color.green_blue_light);
         rangeTextColor = getResources().getColor(R.color.white);
+        checkColor = getResources().getColor(R.color.red);
     }
 
     private void initData() {
@@ -79,7 +80,7 @@ public class CalendarActivity extends AppCompatActivity {
         mergeInfo.startLine = 0;
         mergeInfo.endLine = LINES - 1;
         mergeInfo.texts = new String[1];
-        mergeInfo.texts[0] = "SEPTEMBER";
+        mergeInfo.texts[0] = "DECEMBER";
         mergeInfo.textSize = dipToPx(25.0f);
         mergeInfo.textColor = titleColor;
 
@@ -140,14 +141,22 @@ public class CalendarActivity extends AppCompatActivity {
                     setRangeDecoration();
                 } else {
                     clearDecoration();
-//                    start = cellInfo.row * LINES + cellInfo.line;
-//                    setCircleDecoration(cellInfo);
                 }
-                Log.d("atag", start + ", " + end);
             }
 
             @Override
             public void onMergedCellClick(MergeInfo mergeInfo) {
+
+            }
+        });
+        calendar.setOnCellLongClickListener(new EasyTableView.OnCellLongClickListener() {
+            @Override
+            public void onCellLongClick(CellInfo cellInfo) {
+                setCheckDecoration(cellInfo);
+            }
+
+            @Override
+            public void onMergedCellLongClick(MergeInfo mergeInfo) {
 
             }
         });
@@ -169,8 +178,10 @@ public class CalendarActivity extends AppCompatActivity {
         });
     }
 
-    private void initRangeDecoration() {
+    private void initDecorations() {
         rangeDecoration = new RangeDecoration(0, rangeColor, cellInfos);
+        checkDecoration = new CalendarCheckDecoration(dipToPx(6.0f), checkColor);
+        calendar.setTopDecorations(checkDecoration);
     }
 
     private void setCircleDecoration(CellInfo cellInfo) {
@@ -190,6 +201,11 @@ public class CalendarActivity extends AppCompatActivity {
         rangeDecoration.setRange(start, end);
         rangeDecoration.setRangeTextColor(calendar, rangeTextColor);
         calendar.setBottomDecorations(rangeDecoration);
+        calendar.reset();
+    }
+
+    private void setCheckDecoration(CellInfo cellInfo) {
+        checkDecoration.setCheckedCell(cellInfo);
         calendar.reset();
     }
 
