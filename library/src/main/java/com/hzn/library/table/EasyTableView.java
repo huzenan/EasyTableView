@@ -780,6 +780,7 @@ public class EasyTableView extends View {
         int size = cellInfoList.size();
         for (int i = 0; i < size; i++) {
             CellInfo cellInfo = cellInfoList.get(i);
+            cellInfo.parent = this;
 
             // 超出表格范围的数据不处理
             if (cellInfo.row < rows && cellInfo.line < lines) {
@@ -908,6 +909,7 @@ public class EasyTableView extends View {
         for (CellInfo cellInfo : cellInfoList) {
             if (cellInfo.row < rows && cellInfo.line < lines) {
                 cellArr[cellInfo.row][cellInfo.line] = cellInfo;
+                cellInfo.parent = this;
 
                 w = cellInfo.width;
                 if (cellArr[0].length == 1 && cellInfo.width < 2.0f * outStrokeCorner)

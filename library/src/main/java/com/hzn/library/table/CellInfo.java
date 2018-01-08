@@ -85,6 +85,10 @@ public class CellInfo {
      * Texts, multiple lines.
      */
     public String[] texts = null;
+    /**
+     * The table in which the cell is located.
+     */
+    public EasyTableView parent = null;
 
     public CellInfo() {
     }
