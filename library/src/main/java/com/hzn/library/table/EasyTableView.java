@@ -180,7 +180,7 @@ public class EasyTableView extends View {
         widthArr = new float[lines];
         heightArr = new float[rows];
 
-        // 初始化单元格
+        // init cells
         if (rows != 0 && lines != 0) {
             cellArr = new CellInfo[rows][lines];
             for (int r = 0; r < rows; r++)
@@ -782,7 +782,7 @@ public class EasyTableView extends View {
             CellInfo cellInfo = cellInfoList.get(i);
             cellInfo.parent = this;
 
-            // 超出表格范围的数据不处理
+            // ignore data not in table size
             if (cellInfo.row < rows && cellInfo.line < lines) {
                 cellArr[cellInfo.row][cellInfo.line] = cellInfo;
                 fillTextAttrs(cellInfo);
