@@ -1,77 +1,88 @@
 package com.hzn.library.table;
 
 /**
- * 一个单元格的信息
+ * Information of a table cell.
  * <br/>
  * Created by huzn on 2017/9/27.
  */
 public class CellInfo {
     /**
-     * 不绘制内容，可用于隐藏单元格内容，单元格数据不会清除
+     * Not drawing the cell, can be used to hide the cell
+     * and data of the cell will not be cleared.
      */
     public static final int TYPE_NONE = 0;
     /**
-     * 正常类型
+     * Normal type.
      */
     public static final int TYPE_NORMAL = 1;
     /**
-     * 按钮类型
+     * Button type.
      */
     public static final int TYPE_BUTTON = 2;
     /**
-     * 单元格的类型
+     * Type of cell.
      */
     public int type = TYPE_NORMAL;
     /**
-     * Object类型的tag标记
+     * Tag of cell.
      */
     public Object tag = null;
     /**
-     * 所在行
+     * Row of cell.
      */
     public int row = -1;
     /**
-     * 所在列
+     * Line of cell.
      */
     public int line = -1;
     /**
-     * 起始x坐标，不提供外部设置，只能获取
+     * Starting x-coordinate of cell,
+     * access with {@link #getStartX()}.
      */
     float startX = 0.0f;
     /**
-     * 起始y坐标，不提供外部设置，只能获取
+     * Starting y-coordinate of cell,
+     * access with {@link #getStartY()}.
      */
     float startY = 0.0f;
     /**
-     * 宽度，小于0时，将在绘制单元格时，根据模式来自动设置宽
+     * Width of cell, if less than 0, width will be
+     * automatically set by table's mode.
      */
     public float width = -1.0f;
     /**
-     * 高度，小于0时，将在绘制单元格时，根据模式来自动设置高
+     * Height of cell, if less than 0, height will be
+     * automatically set by table's mode.
      */
     public float height = -1.0f;
     /**
-     * 背景颜色，只有设置时才特殊填充，否则用该单元格默认的颜色填充
+     * Background color of cell, only if this is set will
+     * the background of the cell be drew, otherwise
+     * the background of the cell is the background of the table.
      */
     public int bgColor = 0;
     /**
-     * 字体颜色，不设置时默认为Color.BLACK，设置后将覆盖textColors的值
+     * Text color of cell, this will override {@link #textColors},
+     * text will be drew with Color.BLACK by default.
      */
     public int textColor = 0;
     /**
-     * 字体颜色集，设置时必须与texts长度一致
+     * Text colors, denotes color of each text line, should be set
+     * to the same size of {@link #texts}.
      */
     public int[] textColors = null;
     /**
-     * 字体大小，单位px，不设置时默认为14sp对应的px值，设置后将覆盖textSizes的值
+     * Size of text, this will override {@link #textSizes},
+     * text will be drew with 14sp by default.
      */
     public int textSize = -1;
     /**
-     * 字体大小集，单位px，设置时必须与texts长度一致
+     * Text sizes, denotes size of each text line, should be set
+     * to the same size of {@link #texts}.
      */
     public int[] textSizes = null;
     /**
-     * 显示的字符
+     * Texts, multiple lines.
      */
     public String[] texts = null;
 
